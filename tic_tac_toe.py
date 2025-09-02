@@ -13,6 +13,7 @@ class TicTacToe:
 
     def make_move(self, player_id, position):
         # Ensure position is an integer
+        # test2
         try:
             position = int(position)
         except (ValueError, TypeError):
