@@ -5,3 +5,4 @@ A simple Tic-Tac-Toe project, with a future mode where players must win mini-gam
 <p>WIP :P</p>
 
 <h2>Example Alternative Mode Picture</h2>
+![Tic-Tac-Toe Board](./sample.png)
