@@ -1,173 +1,270 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Live Tic-Tac-Toe</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #board { display: grid; grid-template-columns: repeat(3, 60px); grid-gap: 5px; margin: 20px auto; }
-        .cell { width: 60px; height: 60px; font-size: 2em; background: #eee; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        #status, #turn { margin-top: 20px; }
-        #board { display: none; }
-    </style>
+  <meta charset="utf-8" />
+  <title>Live Tic-Tac-Toe (Ably)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; text-align:center; padding:20px; }
+    #board { display:grid; grid-template-columns:repeat(3,80px); gap:5px; justify-content:center; margin:20px auto; }
+    .cell { width:80px; height:80px; background:#eee; display:flex; align-items:center; justify-content:center; font-size:2rem; cursor:pointer; }
+    #controls { margin-bottom:12px; }
+    #rematchBtn{display:none;margin-top:10px;}
+  </style>
 </head>
 <body>
-    <h1>Live Tic-Tac-Toe</h1>
-    <div>
-        <input id="gameId" placeholder="Game ID">
-        <input id="playerId" placeholder="Your Name">
-        <button onclick="createGame()">Create Game</button>
-        <button onclick="joinGame()">Join Game</button>
-    </div>
-    <div id="status"></div>
-    <div id="turn"></div>
-    <div id="board"></div>
-    <button id="rematchBtn" style="display:none;" onclick="requestRematch()">Rematch?</button>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script>
-        const socket = io();
-        let gameId = '';
-        let playerId = '';
-        let myTurn = false;
-        let board = Array(9).fill('');
-        let gameStarted = false;
-        let rematchVotes = 0;
+  <h1>Live Tic-Tac-Toe</h1>
+  <div id="controls">
+    <input id="gameId" placeholder="Game ID" />
+    <input id="playerId" placeholder="Your name" />
+    <button id="joinBtn">Join</button>
+    <button id="createBtn">Create + Join</button>
+  </div>
 
-        function createGame() {
-            gameId = document.getElementById('gameId').value;
-            playerId = document.getElementById('playerId').value;
-            socket.emit('createGame', { gameId });
-            socket.emit('joinGame', { gameId, playerId });
+  <div id="status">Not connected</div>
+  <div id="turn"></div>
+  <div id="board" style="display:none"></div>
+  <button id="rematchBtn" onclick="requestRematch()">Rematch?</button>
+
+  <script src="https://cdn.ably.io/lib/ably.min-1.js"></script>
+  <script>
+    // Simple TicTacToe game class (client-side authoritative for local state)
+    class TicTacToe {
+      constructor() { this.board = Array(9).fill(''); this.turnIndex = 0; this.players = []; this.winner = null; }
+      addPlayer(id) { if (this.players.length < 2 && !this.players.includes(id)) this.players.push(id); }
+      resetWithPlayers(players){ this.board = Array(9).fill(''); this.players = players.slice(0,2); this.turnIndex = 0; this.winner = null; }
+      makeMove(playerId,pos){
+        if(this.winner) return { error:'game over' };
+        if(pos<0||pos>8) return { error:'invalid' };
+        if(this.board[pos] !== '') return { error:'occupied' };
+        if(this.players.length<2 || this.players[this.turnIndex] !== playerId) return { error:'not your turn' };
+        this.board[pos] = this.turnIndex===0 ? 'X' : 'O';
+        if(this.checkWinner()) this.winner = playerId;
+        else this.turnIndex = 1 - this.turnIndex;
+        return { board:this.board.slice(), winner:this.winner, next_player: this.winner? null : this.players[this.turnIndex] };
+      }
+      checkWinner(){
+        const combos = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        for(const [a,b,c] of combos){
+          if(this.board[a] && this.board[a]===this.board[b] && this.board[a]===this.board[c]) return true;
         }
+        return false;
+      }
+    }
 
-        function joinGame() {
-            gameId = document.getElementById('gameId').value;
-            playerId = document.getElementById('playerId').value;
-            socket.emit('joinGame', { gameId, playerId });
+    // App state
+    let ablyRealtime = null;
+    let channel = null;
+    let game = new TicTacToe();
+    let myId = null;
+    let gameId = null;
+
+    // UI refs
+    const statusEl = document.getElementById('status');
+    const turnEl = document.getElementById('turn');
+    const boardEl = document.getElementById('board');
+    const rematchBtn = document.getElementById('rematchBtn');
+
+    document.getElementById('joinBtn').onclick = joinGame;
+    document.getElementById('createBtn').onclick = createAndJoin;
+
+    async function getAblyTokenRequest() {
+      const res = await fetch('/api/createToken');
+      if(!res.ok) throw new Error('token fetch failed');
+      return await res.json();
+    }
+
+    async function connectAbly(clientId) {
+      // request tokenRequest from serverless function
+      const tokenRequest = await getAblyTokenRequest();
+      // instantiate Realtime with tokenRequest and clientId (Ably will use the tokenRequest)
+      return new Promise((resolve, reject) => {
+        const realtime = new Ably.Realtime({ token: tokenRequest, clientId });
+        realtime.connection.once('connected', () => resolve(realtime));
+        realtime.connection.once('failed', (err)=> reject(err));
+      });
+    }
+
+    async function createAndJoin(){
+      const gid = document.getElementById('gameId').value.trim();
+      const pid = document.getElementById('playerId').value.trim();
+      if(!gid || !pid){ alert('enter gameId and playerId'); return; }
+      gameId = gid; myId = pid;
+      await startRealtime();
+      // simply presence enter will create the lobby
+      await enterLobby();
+    }
+
+    async function joinGame(){
+      const gid = document.getElementById('gameId').value.trim();
+      const pid = document.getElementById('playerId').value.trim();
+      if(!gid || !pid){ alert('enter gameId and playerId'); return; }
+      gameId = gid; myId = pid;
+      await startRealtime();
+      await enterLobby();
+    }
+
+    async function startRealtime(){
+      if(ablyRealtime) return;
+      try {
+        statusEl.innerText = 'Connecting...';
+        ablyRealtime = await connectAbly(myId);
+        statusEl.innerText = 'Connected to Ably';
+        channel = ablyRealtime.channels.get('tic-'+gameId);
+        channel.subscribe((msg)=> handleMessage(msg));
+        // handle presence enter/leave events
+        channel.presence.subscribe('enter', handlePresenceChange);
+        channel.presence.subscribe('leave', handlePresenceChange);
+        channel.presence.subscribe('update', handlePresenceChange);
+      } catch(e){
+        console.error(e);
+        statusEl.innerText = 'Realtime connection failed';
+      }
+    }
+
+    async function enterLobby(){
+      // enter presence
+      await channel.presence.enter({ playerId: myId });
+      // fetch players
+      const members = await channel.presence.get();
+      const players = members.map(m => m.data.playerId || m.clientId || m.id).filter(Boolean);
+      // sort by timestamp to pick first -> use presence info order
+      const ordered = members.sort((a,b)=> a.clientId < b.clientId ? -1:1).map(m=> m.data.playerId || m.clientId);
+      game.resetWithPlayers(ordered);
+      // if 2 players, start
+      if(game.players.length === 2){
+        channel.publish({ name:'start', data:{ players: game.players, first_player: game.players[0] } });
+      } else {
+        statusEl.innerText = 'Waiting for opponent...';
+        boardEl.style.display = 'none';
+      }
+    }
+
+    async function handlePresenceChange() {
+      // update local view of players
+      const members = await channel.presence.get();
+      const ordered = members.map(m => m.data.playerId || m.clientId);
+      if(ordered.length >= 2){
+        game.resetWithPlayers(ordered);
+        // notify start (if not already)
+        channel.publish({ name:'start', data:{ players: game.players, first_player: game.players[0] } });
+      } else {
+        statusEl.innerText = 'Waiting for opponent...';
+        boardEl.style.display = 'none';
+      }
+    }
+
+    function handleMessage(msg){
+      const { name, data } = msg;
+      if(name === 'start'){
+        game.resetWithPlayers(data.players);
+        statusEl.innerText = 'Game started';
+        boardEl.style.display = 'grid';
+        rematchBtn.style.display = 'none';
+        setInitialTurn(data.first_player);
+        renderBoard();
+      } else if(name === 'move'){
+        // apply move locally using game.makeMove (keeps consistency)
+        const result = game.makeMove(data.playerId, data.position);
+        renderBoard();
+        if(result.error){
+          console.warn('move rejected', result);
+        } else {
+          updateTurnDisplay(result.next_player);
+          if(result.winner){
+            statusEl.innerText = 'Winner: ' + result.winner;
+            rematchBtn.style.display = 'inline-block';
+          }
         }
-
-        socket.on('gameCreated', data => {
-            document.getElementById('status').innerText = `Game ${data.gameId} created. Waiting for opponent...`;
-            gameStarted = false;
-            showBoard(false);
-        });
-
-        socket.on('gameJoined', data => {
-            document.getElementById('status').innerText = `Joined game ${data.gameId}. Waiting for opponent...`;
-            gameStarted = false;
-            showBoard(false);
-        });
-
-        // Helper to set turn indicator and myTurn
-        function setInitialTurn(first_player) {
-            if (playerId === first_player) {
-                document.getElementById('turn').innerText = 'Your turn!';
-                myTurn = true;
-            } else {
-                document.getElementById('turn').innerText = 'Waiting for opponent...';
-                myTurn = false;
-            }
+      } else if(name === 'rematch'){
+        // show votes
+        const votes = data.votes;
+        statusEl.innerText = `Rematch votes: ${votes}/2`;
+        if(data.started){
+          // start received via 'start' message too
+          rematchBtn.style.display = 'none';
         }
+      }
+    }
 
-        // Custom event: both players joined, start game
-        socket.on('startGame', data => {
-            document.getElementById('status').innerText = `Game started!`;
-            gameStarted = true;
-            showBoard(true);
-            setInitialTurn(data.first_player);
-            document.getElementById('rematchBtn').style.display = 'none';
-            document.getElementById('rematchBtn').disabled = false;
-            board = Array(9).fill('');
-            renderBoard();
-        });
+    function setInitialTurn(first_player){
+      if(myId === first_player){
+        turnEl.innerText = 'Your turn!';
+      } else {
+        turnEl.innerText = 'Waiting for opponent...';
+      }
+    }
 
-        socket.on('moveMade', data => {
-            board = data.result.board;
-            renderBoard();
-            if (data.result.winner) {
-                document.getElementById('status').innerText = `Winner: ${data.result.winner}`;
-                document.getElementById('turn').innerText = '';
-            } else if (data.next_player === playerId) {
-                document.getElementById('turn').innerText = 'Your turn!';
-                myTurn = true;
-            } else {
-                document.getElementById('turn').innerText = 'Waiting for opponent...';
-                myTurn = false;
-            }
-        });
+    function updateTurnDisplay(next_player){
+      if(!next_player){
+        turnEl.innerText = '';
+        return;
+      }
+      if(next_player === myId) turnEl.innerText = 'Your turn!';
+      else turnEl.innerText = 'Waiting for opponent...';
+    }
 
-        socket.on('gameOver', data => {
-            document.getElementById('status').innerText = `Game Over! Winner: ${data.winner}`;
-            document.getElementById('turn').innerText = '';
-            gameStarted = false;
-            // Remove or comment out this line:
-            // showBoard(false);
-            // Instead, keep the board visible
-            document.getElementById('rematchBtn').style.display = 'inline-block';
-        });
+    function renderBoard(){
+      boardEl.innerHTML = '';
+      boardEl.style.display = 'grid';
+      game.board.forEach((cell, idx) => {
+        const d = document.createElement('div');
+        d.className = 'cell';
+        d.innerText = cell;
+        d.onclick = () => {
+          if(game.players.length<2) return;
+          const expected = game.players[game.turnIndex];
+          if(expected !== myId) return;
+          if(cell !== '') return;
+          // publish move
+          channel.publish({ name:'move', data:{ position: idx, playerId: myId } });
+          // local apply will occur via message handler
+        };
+        boardEl.appendChild(d);
+      });
+    }
 
-        socket.on('error', data => {
-            document.getElementById('status').innerText = data.message;
-        });
+    async function requestRematch(){
+      // publish rematch vote and track votes via presence or messages
+      channel.publish({ name:'rematch', data:{ playerId: myId }});
+      rematchBtn.disabled = true;
+      statusEl.innerText = 'Waiting for opponent to accept rematch...';
+      // Simple rematch coordination: listen for rematch messages and count distinct voters
+      // We'll maintain a transient set in channel state by asking presence members for last rematch votes:
+      // For simplicity, ask presence and if both have published rematch recently, serverless logic not required because both clients can detect votes:
+      // (Implementation below: each client keeps rematchVotes set locally and increments on receiving rematch messages)
+    }
 
-        function showBoard(show) {
-            document.getElementById('board').style.display = show ? 'grid' : 'none';
-        }
-
-        function renderBoard() {
-            const boardDiv = document.getElementById('board');
-            boardDiv.innerHTML = '';
-            board.forEach((cell, idx) => {
-                const cellDiv = document.createElement('div');
-                cellDiv.className = 'cell';
-                cellDiv.innerText = cell;
-                cellDiv.onclick = () => {
-                    if (gameStarted && myTurn && cell === '') makeMove(idx);
-                };
-                boardDiv.appendChild(cellDiv);
+    // Keep local rematchVotes set and handle rematch messages
+    const rematchVotes = new Set();
+    channel && channel.subscribe('rematch', (m)=>{});
+    // Subscribe globally to rematch messages via channel.subscribe handler (above handleMessage will catch them)
+    // Extend handleMessage to maintain rematchVotes:
+    (function extendRematchCount(){
+      const original = handleMessage;
+      handleMessage = function(msg){
+        if(msg.name === 'rematch'){
+          rematchVotes.add(msg.data.playerId);
+          const votes = rematchVotes.size;
+          if(votes >= 2){
+            // reset votes and trigger new start
+            rematchVotes.clear();
+            // collect players from presence
+            channel.presence.get().then(members=>{
+              const players = members.map(m=> m.data.playerId || m.clientId).slice(0,2);
+              game.resetWithPlayers(players);
+              channel.publish({ name:'start', data:{ players, first_player: players[0] }});
             });
+            return;
+          } else {
+            statusEl.innerText = `Rematch votes: ${votes}/2`;
+            return;
+          }
         }
+        original(msg);
+      };
+    })();
 
-        function makeMove(position) {
-            socket.emit('makeMove', { gameId, playerId, position });
-        }
-
-        function updateTurn(data) {
-            // If no data, default to player 1's turn
-            if (!data || !data.result || !data.result.board) {
-                myTurn = true;
-                document.getElementById('turn').innerText = 'Your turn!';
-                return;
-            }
-            // Count X and O to determine turn
-            const xCount = data.result.board.filter(c => c === 'X').length;
-            const oCount = data.result.board.filter(c => c === 'O').length;
-            // If X's turn and you are player 1, or O's turn and you are player 2
-            if ((xCount === oCount && playerId === data.player) || (xCount > oCount && playerId !== data.player)) {
-                myTurn = true;
-                document.getElementById('turn').innerText = 'Your turn!';
-            } else {
-                myTurn = false;
-                document.getElementById('turn').innerText = 'Waiting for opponent...';
-            }
-        }
-
-        function requestRematch() {
-            socket.emit('rematchRequest', { gameId, playerId });
-            document.getElementById('rematchBtn').disabled = true;
-            document.getElementById('status').innerText = 'Waiting for opponent to accept rematch...';
-        }
-
-        socket.on('rematchStatus', data => {
-            if (data.votes < 2) {
-                document.getElementById('status').innerText = 'Waiting for opponent to accept rematch...';
-            }
-            // Do NOT reset the board or call setInitialTurn here!
-            // The reset and turn assignment will happen in the startGame handler.
-        });
-
-        // Initial state
-        showBoard(false);
-    </script>
+  </script>
 </body>
 </html>
