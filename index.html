@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Live Tic-Tac-Toe</title>
     <link rel="stylesheet" href="public/styles.css">
+    <style>
+    /* minimal fallback if styles.css missing */
+    #board { display:grid; grid-template-columns:repeat(3,80px); gap:5px; justify-content:center; margin:20px auto; }
+    .cell { width:80px; height:80px; display:flex; align-items:center; justify-content:center; font-size:2rem; background:#eee; cursor:pointer; border:1px solid #ccc; }
+  </style>
 </head>
 <body>
     <h1>Live Tic-Tac-Toe</h1>
