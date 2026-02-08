@@ -10,6 +10,9 @@ body {
     gap: 5px;
     justify-content: center;
     margin: 20px auto;
+    /* ensure it's visible even if JS toggles display */
+    min-width: 260px;
+    min-height: 260px;
 }
 
 .cell {
@@ -21,6 +24,8 @@ body {
     justify-content: center;
     font-size: 2rem;
     cursor: pointer;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
 }
 
 #controls {
