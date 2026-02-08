@@ -1,0 +1,33 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    gap: 5px;
+    justify-content: center;
+    margin: 20px auto;
+}
+
+.cell {
+    width: 80px;
+    height: 80px;
+    background: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+#controls {
+    margin-bottom: 12px;
+}
+
+#rematchBtn {
+    display: none;
+    margin-top: 10px;
+}
