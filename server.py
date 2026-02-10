@@ -115,8 +115,12 @@ def rematch_request(data):
     first_player = None
     if game and votes == 2:
         player_ids = list(rematch_votes[game_id])
+        # Reverse the player order for rematch
+        player_ids.reverse()  # Simple reversal
+        # Reset game state
         rematch_votes[game_id] = set()
         games[game_id] = TicTacToe()
+        # Add players in reversed order (second player becomes first)
         for pid in player_ids:
             games[game_id].add_player(pid)
         first_player = games[game_id].players[0]
