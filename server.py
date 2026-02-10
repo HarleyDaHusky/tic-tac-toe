@@ -16,9 +16,13 @@ def index():
 @socketio.on('createGame')
 def create_game(data):
     game_id = data['gameId']
+    if game_id in games:
+        emit('error', {'message': 'Game ID already in use'})
+        return
     games[game_id] = TicTacToe()
     join_room(game_id)
     emit('gameCreated', {'gameId': game_id})
+
 
 @socketio.on('joinGame')
 def join_game(data):
@@ -118,6 +122,35 @@ def rematch_request(data):
         first_player = games[game_id].players[0]
         socketio.emit('startGame', {'gameId': game_id, 'first_player': first_player}, room=game_id)
     socketio.emit('rematchStatus', {'votes': votes, 'first_player': first_player}, room=game_id)
+
+@socketio.on('leaveGame')
+def leave_game(data):
+    game_id = data.get('gameId')
+    player_id = data.get('playerId')
+
+    game = games.get(game_id)
+    if not game:
+        return
+
+    opponent = None
+    for pid in game.players:
+        if pid != player_id:
+            opponent = pid
+            break
+
+    if opponent:
+        socketio.emit(
+            'gameOver',
+            {
+                'winner': opponent,
+                'draw': False,
+                'forfeit': True
+            },
+            room=game_id
+        )
+
+    games.pop(game_id, None)
+
 
 if __name__ == '__main__':
     import os

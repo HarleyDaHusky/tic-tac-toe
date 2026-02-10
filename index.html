@@ -1,247 +1,299 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>Live Tic-Tac-Toe</title>
-  <link rel="stylesheet" href="public/styles.css">
-  <style>
-    /* modal / popup styles */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    .modal {
-      background: #fff;
-      padding: 18px;
-      border-radius: 8px;
-      width: 360px;
-      max-width: calc(100% - 40px);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      text-align: center;
-    }
-    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-    .close-btn { background:transparent; border:0; font-size:18px; cursor:pointer; }
-    #board { display:grid; grid-template-columns:repeat(3,80px); gap:5px; justify-content:center; margin:12px auto; }
-    .cell { width:80px; height:80px; display:flex; align-items:center; justify-content:center; font-size:2rem; background:#eee; cursor:pointer; border:1px solid #ccc; box-sizing:border-box; }
-    #rematchBtn{ display:none; margin-top:10px; }
-  </style>
-</head>
-<body>
-  <h1>Live Tic-Tac-Toe</h1>
-
-  <!-- initial controls remain on page -->
-  <div id="controls">
-    <input id="gameId" placeholder="Game ID" />
-    <input id="playerId" placeholder="Your name" />
-    <button id="createBtn">Create + Join</button>
-    <button id="joinBtn">Join</button>
-  </div>
-
-  <!-- Modal / popup that contains the full game UI -->
-  <div id="gameModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
-    <div class="modal" id="gameModal">
-      <div class="modal-header">
-        <strong id="modalTitle">Game</strong>
-        <button class="close-btn" id="closeModalBtn" title="Close">&times;</button>
-      </div>
-
-      <div id="status"></div>
-      <div id="turn"></div>
-      <div id="board" style="display:none"></div>
-      <button id="rematchBtn" onclick="requestRematch()">Rematch?</button>
-
-      <!-- Confirm leave dialog (hidden by default) -->
-      <div id="leaveConfirm" style="display:none; position: absolute; inset: 0; align-items:center; justify-content:center;">
-        <div style="background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.2); width: 320px; margin:auto; text-align:center;">
-          <div style="margin-bottom:12px; font-weight:600;">Leave game?</div>
-          <div style="margin-bottom:12px;">Are you sure you want to leave? This will forfeit the game.</div>
-          <div style="display:flex; gap:8px; justify-content:center;">
-            <button id="confirmLeaveBtn" style="padding:8px 12px; background:#e53e3e; color:#fff; border:0; border-radius:6px; cursor:pointer;">Leave</button>
-            <button id="cancelLeaveBtn" style="padding:8px 12px; background:#edf2f7; border:0; border-radius:6px; cursor:pointer;">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    const socket = io();
-    let gameId = '';
-    let playerId = '';
-    let myTurn = false;
-    let board = Array(9).fill('');
-    let gameStarted = false;
-
-    const statusEl = document.getElementById('status');
-    const turnEl = document.getElementById('turn');
-    const boardEl = document.getElementById('board');
-    const modalBackdrop = document.getElementById('gameModalBackdrop');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const leaveConfirm = document.getElementById('leaveConfirm');
-
-    function showModal() {
-      modalBackdrop.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-    }
-    function hideModal() {
-      modalBackdrop.style.display = 'none';
-      document.body.style.overflow = '';
-    }
-
-    // centralized immediate close used when game is not active (no confirm)
-    function doImmediateClose() {
-      try { if (gameId && playerId) socket.emit('leaveGame', { gameId, playerId }); } catch(e){}
-      try { socket.disconnect(); } catch(e){}
-      leaveConfirm.style.display = 'none';
-      hideModal();
-      board = Array(9).fill('');
-      try { renderBoard(); } catch(e) {}
-      statusEl.innerText = 'You left the game';
-      turnEl.innerText = '';
-      document.getElementById('rematchBtn').style.display = 'none';
-      gameId = '';
-      playerId = '';
-      myTurn = false;
-      gameStarted = false;
-    }
-
-    // close button: confirm if game active, otherwise close immediately
-    closeModalBtn.onclick = () => {
-      if (gameStarted) {
-        leaveConfirm.style.display = 'flex';
-      } else {
-        doImmediateClose();
-      }
-    };
-
-    // cancel: just hide the confirm dialog and keep modal open
-    cancelLeaveBtn.onclick = () => {
-      leaveConfirm.style.display = 'none';
-    };
-
-    // confirm: notify server (best-effort) then disconnect socket and close modal
-    confirmLeaveBtn.onclick = () => {
-      // forfeit path: perform immediate close behavior
-      doImmediateClose();
-    };
-
-    // create/join now open modal immediately, then perform socket flow
-    document.getElementById('createBtn').onclick = async () => {
-      gameId = document.getElementById('gameId').value.trim();
-      playerId = document.getElementById('playerId').value.trim();
-      if (!gameId || !playerId) return alert('enter gameId and playerId');
-      showModal();
-      socket.emit('createGame', { gameId });
-      socket.emit('joinGame', { gameId, playerId });
-    };
-
-    document.getElementById('joinBtn').onclick = async () => {
-      gameId = document.getElementById('gameId').value.trim();
-      playerId = document.getElementById('playerId').value.trim();
-      if (!gameId || !playerId) return alert('enter gameId and playerId');
-      showModal();
-      socket.emit('joinGame', { gameId, playerId });
-    };
-
-    function renderBoard(){
-      boardEl.innerHTML = '';
-      boardEl.style.display = 'grid';
-      board.forEach((cell, idx) => {
-        const d = document.createElement('div');
-        d.className = 'cell';
-        d.textContent = cell;
-        d.onclick = () => {
-          if (!myTurn) return;
-          if (cell !== '') return;
-          socket.emit('makeMove', { gameId, position: idx, playerId });
-        };
-        boardEl.appendChild(d);
-      });
-    }
-
-    function setInitialTurn(first_player){
-      if (playerId === first_player) {
-        turnEl.innerText = 'Your turn!';
-        myTurn = true;
-      } else {
-        turnEl.innerText = 'Waiting for opponent...';
-        myTurn = false;
-      }
-    }
-
-    // socket handlers (unchanged logic; they update modal UI)
-    socket.on('gameCreated', data => {
-      statusEl.innerText = `Game ${data.gameId} created. Waiting for opponent...`;
-      boardEl.style.display = 'none';
-    });
-
-    socket.on('gameJoined', data => {
-      statusEl.innerText = `Joined game ${data.gameId}. Waiting for opponent...`;
-      boardEl.style.display = 'none';
-    });
-
-    socket.on('startGame', data => {
-      statusEl.innerText = 'Game started!';
-      gameStarted = true;
-      board = Array(9).fill('');
-      renderBoard();
-      setInitialTurn(data.first_player);
-      document.getElementById('rematchBtn').style.display = 'none';
-      // ensure the close (X) button is visible/usable when a fresh game starts
-      if (closeModalBtn) { closeModalBtn.style.display = 'inline-block'; closeModalBtn.disabled = false; }
-      if (leaveConfirm) leaveConfirm.style.display = 'none';
-    });
-
-    socket.on('moveMade', data => {
-      if (data && data.result && data.result.board) board = data.result.board;
-      renderBoard();
-      if (data.result && data.result.winner) {
-        statusEl.innerText = `Winner: ${data.result.winner}`;
-        turnEl.innerText = '';
-        myTurn = false;
-        document.getElementById('rematchBtn').style.display = 'inline-block';
-      } else if (data.next_player) {
-        if (data.next_player === playerId) {
-          turnEl.innerText = 'Your turn!';
-          myTurn = true;
-        } else {
-          turnEl.innerText = 'Waiting for opponent...';
-          myTurn = false;
+    <meta charset="UTF-8" />
+    <title>Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="public/styles.css">
+    <style>
+        /* modal / popup styles */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
-      }
-    });
 
-    socket.on('gameOver', data => {
-      if (data && data.draw) statusEl.innerText = 'Draw';
-      else statusEl.innerText = `Winner: ${data && data.winner ? data.winner : 'Unknown'}`;
-      turnEl.innerText = '';
-      myTurn = false;
-      document.getElementById('rematchBtn').style.display = 'inline-block';
-      // game ended — allow immediate close without confirmation
-      gameStarted = false;
-      if (closeModalBtn) { closeModalBtn.style.display = 'inline-block'; closeModalBtn.disabled = false; }
-      if (leaveConfirm) leaveConfirm.style.display = 'none';
-    });
+        .modal {
+            background: #fff;
+            padding: 18px;
+            border-radius: 8px;
+            width: 360px;
+            max-width: calc(100% - 40px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
 
-    socket.on('rematchStatus', data => {
-      if (data.votes < 2) statusEl.innerText = 'Waiting for opponent to accept rematch...';
-      else statusEl.innerText = 'Rematch started';
-    });
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
 
-    function requestRematch(){
-      socket.emit('rematchRequest', { gameId, playerId });
-      document.getElementById('rematchBtn').disabled = true;
-      statusEl.innerText = 'Waiting for opponent to accept rematch...';
-    }
+        .close-btn {
+            background: transparent;
+            border: 0;
+            font-size: 18px;
+            cursor: pointer;
+        }
 
-    // keep modal hidden initially
-    hideModal();
-  </script>
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 5px;
+            justify-content: center;
+            margin: 12px auto;
+        }
+
+        .cell {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background: #eee;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        #rematchBtn {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live Tic-Tac-Toe</h1>
+
+    <div id="controls">
+        <input id="gameId" placeholder="Game ID" />
+        <input id="playerId" placeholder="Your name" />
+        <button id="createBtn">Create + Join</button>
+        <button id="joinBtn">Join</button>
+    </div>
+
+    <div id="gameModalBackdrop" class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <strong>Game</strong>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+
+            <div id="status"></div>
+            <div id="turn"></div>
+            <div id="board" style="display:none"></div>
+            <button id="rematchBtn">Rematch?</button>
+
+            <div id="leaveConfirm"
+                style="display:none; position:absolute; inset:0; align-items:center; justify-content:center;">
+                <div
+                    style="background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.2); width: 320px;">
+                    <div style="margin-bottom:12px;font-weight:600;">Leave game?</div>
+                    <div style="margin-bottom:12px;">This will forfeit the game.</div>
+                    <button id="confirmLeaveBtn"
+                        style="padding:8px 12px; background:#e53e3e; color:#fff; border:0; border-radius:6px; cursor:pointer;">Leave</button>
+                    <button id="cancelLeaveBtn"
+                        style="padding:8px 12px; background:#edf2f7; border:0; border-radius:6px; cursor:pointer;">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        const socket = io({
+            reconnection: true
+        });
+
+        let gameId = '';
+        let playerId = '';
+        let myTurn = false;
+        let board = Array(9).fill('');
+        let gameStarted = false;
+
+        const statusEl = document.getElementById('status');
+        const turnEl = document.getElementById('turn');
+        const boardEl = document.getElementById('board');
+        const modalBackdrop = document.getElementById('gameModalBackdrop');
+        const rematchBtn = document.getElementById('rematchBtn');
+        const leaveConfirm = document.getElementById('leaveConfirm');
+        const gameIdInput = document.getElementById('gameId');
+        const playerIdInput = document.getElementById('playerId');
+
+
+        function showModal() {
+            modalBackdrop.style.display = 'flex';
+        }
+
+        function hideModal() {
+            modalBackdrop.style.display = 'none';
+        }
+
+        function resetState() {
+            board = Array(9).fill('');
+            renderBoard();
+            statusEl.innerText = '';
+            turnEl.innerText = '';
+            rematchBtn.style.display = 'none';
+            rematchBtn.disabled = false;
+            myTurn = false;
+            gameStarted = false;
+            gameId = '';
+            playerId = '';
+        }
+
+        function doImmediateClose() {
+            if (gameId && playerId) {
+                socket.emit('leaveGame', { gameId, playerId });
+            }
+
+            leaveConfirm.style.display = 'none';
+            hideModal();
+            resetState();
+        }
+
+
+
+        closeModalBtn.onclick = () => {
+            if (gameStarted) leaveConfirm.style.display = 'flex';
+            else doImmediateClose();
+        };
+
+        cancelLeaveBtn.onclick = () => leaveConfirm.style.display = 'none';
+        confirmLeaveBtn.onclick = doImmediateClose;
+
+        document.getElementById('createBtn').onclick = () => {
+            gameId = gameIdInput.value.trim();
+            playerId = playerIdInput.value.trim();
+            if (!gameId || !playerId) return alert('Enter game + name');
+
+            resetUIForNewGame();
+            showModal();
+
+            socket.emit('createGame', { gameId });
+            socket.emit('joinGame', { gameId, playerId });
+        };
+
+
+        document.getElementById('joinBtn').onclick = () => {
+            gameId = gameIdInput.value.trim();
+            playerId = playerIdInput.value.trim();
+            if (!gameId || !playerId) return alert('Enter game + name');
+
+            resetUIForNewGame();
+            showModal();
+
+            socket.emit('joinGame', { gameId, playerId });
+        };
+
+
+        function renderBoard() {
+            boardEl.innerHTML = '';
+            boardEl.style.display = 'grid';
+            board.forEach((cell, i) => {
+                const d = document.createElement('div');
+                d.className = 'cell';
+                d.textContent = cell;
+                d.onclick = () => {
+                    if (!myTurn || cell) return;
+                    socket.emit('makeMove', { gameId, position: i, playerId });
+                };
+                boardEl.appendChild(d);
+            });
+        }
+
+        socket.on('startGame', data => {
+            statusEl.innerText = 'Game started!';
+            board = Array(9).fill('');
+            renderBoard();
+            myTurn = data.first_player === playerId;
+            turnEl.innerText = myTurn ? 'Your turn!' : 'Waiting for opponent...';
+            rematchBtn.style.display = 'none';
+            rematchBtn.disabled = false;
+            gameStarted = true;
+        });
+
+        socket.on('moveMade', data => {
+            board = data.result.board;
+            renderBoard();
+            if (data.next_player) {
+                myTurn = data.next_player === playerId;
+                turnEl.innerText = myTurn ? 'Your turn!' : 'Waiting for opponent...';
+            }
+        });
+
+        socket.on('gameOver', data => {
+            gameStarted = false;
+            myTurn = false;
+
+            if (data.draw) {
+                statusEl.innerText = 'Draw';
+                turnEl.innerText = '';
+                rematchBtn.style.display = 'inline-block';
+            }
+            else if (data.forfeit) {
+                statusEl.innerText = `Winner: ${data.winner}`;
+                turnEl.innerText = 'Opponent disconnected — win by forfeit';
+                rematchBtn.style.display = 'none';
+                gameStarted = false;
+            }
+
+            else {
+                statusEl.innerText = `Winner: ${data.winner}`;
+                turnEl.innerText = '';
+                rematchBtn.style.display = 'inline-block';
+            }
+
+            rematchBtn.disabled = false;
+        });
+
+        socket.on('gameCreated', data => {
+            statusEl.innerText = `Game ${data.gameId} created. Waiting for opponent...`;
+            boardEl.style.display = 'none';
+        });
+
+        socket.on('gameJoined', data => {
+            statusEl.innerText = `Joined game ${data.gameId}. Waiting for opponent...`;
+            boardEl.style.display = 'none';
+        });
+
+        socket.on('error', data => {
+            alert(data.message || 'An error occurred');
+            doImmediateClose();
+        });
+
+        function resetUIForNewGame() {
+            board = Array(9).fill('');
+            boardEl.innerHTML = '';
+            boardEl.style.display = 'none';
+
+            statusEl.innerText = 'Waiting for opponent...';
+            turnEl.innerText = '';
+            rematchBtn.style.display = 'none';
+            rematchBtn.disabled = false;
+
+            leaveConfirm.style.display = 'none';
+
+            myTurn = false;
+            gameStarted = false;
+        }
+
+
+
+
+        rematchBtn.onclick = () => {
+            rematchBtn.disabled = true;
+            statusEl.innerText = 'Waiting for opponent to accept rematch...';
+            socket.emit('rematchRequest', { gameId, playerId });
+        };
+    </script>
 </body>
+
 </html>
