@@ -96,12 +96,15 @@
         });
 
         socket.on('gameOver', data => {
-            document.getElementById('status').innerText = `Game Over! Winner: ${data.winner}`;
+            // Show "Draw" when draw flag is true, otherwise show the winner
+            if (data && data.draw) {
+                document.getElementById('status').innerText = 'Draw';
+            } else {
+                document.getElementById('status').innerText = `Winner: ${data && data.winner ? data.winner : 'Unknown'}`;
+            }
             document.getElementById('turn').innerText = '';
             gameStarted = false;
-            // Remove or comment out this line:
-            // showBoard(false);
-            // Instead, keep the board visible
+            // keep the board visible and show rematch button
             document.getElementById('rematchBtn').style.display = 'inline-block';
         });
 

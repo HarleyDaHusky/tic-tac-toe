@@ -40,8 +40,8 @@ def make_move(data):
     game = games.get(game_id)
     if game:
         result = game.make_move(player_id, position)
-        # Send info about whose turn is next
-        next_player = game.players[game.turn] if len(game.players) == 2 and not result.get('winner') else None
+        # don't report a next_player if there's a winner or a draw
+        next_player = game.players[game.turn] if len(game.players) == 2 and not result.get('winner') and not result.get('draw') else None
         socketio.emit(
             'moveMade',
             {
@@ -52,10 +52,11 @@ def make_move(data):
             },
             room=game_id
         )
+        # announce game over for winner or draw
         if result.get('winner'):
-            socketio.emit('gameOver', {'winner': result['winner']}, room=game_id)
-            # REMOVE or comment out this line:
-            # del games[game_id]
+            socketio.emit('gameOver', {'winner': result['winner'], 'draw': False}, room=game_id)
+        elif result.get('draw'):
+            socketio.emit('gameOver', {'winner': None, 'draw': True}, room=game_id)
 
 @socketio.on('disconnect')
 def disconnect():
