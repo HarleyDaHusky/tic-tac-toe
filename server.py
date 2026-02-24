@@ -39,22 +39,19 @@ def join_game(data):
         emit('gameJoined', {'gameId': game_id})
         
         if len(game.players) == 2:
-            # Send game state with mode info and player list
             if game.mode == 'wordfill':
-                # Word fill mode - start with word fill phase
                 emit('startWordFill', {
                     'gameId': game_id,
                     'first_player': game.players[0],
-                    'players': game.players,  # Add player list
+                    'players': game.players,
                     'sequence': game.wordfill_sequence,
                     'current_index': 0
                 }, room=game_id)
             else:
-                # Classic mode
                 emit('startGame', {
                     'gameId': game_id,
                     'first_player': game.players[0],
-                    'players': game.players  # Add player list
+                    'players': game.players
                 }, room=game_id)
     else:
         emit('error', {'message': 'Game not found or full'})
@@ -68,29 +65,27 @@ def place_word(data):
     
     game = games.get(game_id)
     if game and game.mode == 'wordfill' and game.phase == 'wordfill':
-        result = game.make_move(player_id, position, word)
+        result = game.make_move(player_id, position, word=word)
         
         if result.get('error'):
             emit('error', {'message': result['error']})
             return
         
-        # Broadcast word placement with player info
         socketio.emit('wordPlaced', {
             'position': position,
             'player': player_id,
             'word': word,
             'result': result,
             'next_player': result.get('next_player'),
-            'first_player': game.players[0],  # Add first player
-            'players': game.players  # Add all players
+            'first_player': game.players[0],
+            'players': game.players
         }, room=game_id)
         
-        # Check if word fill phase is complete
         if result.get('wordfill_complete'):
             socketio.emit('wordFillComplete', {
                 'board': result['board'],
                 'first_player': result['next_player'],
-                'players': game.players  # Add player list
+                'players': game.players
             }, room=game_id)
 
 @socketio.on('makeMove')
@@ -98,10 +93,11 @@ def make_move(data):
     game_id = data['gameId']
     position = data['position']
     player_id = data['playerId']
-    game = games.get(game_id)
+    winner = data.get('winner')
     
+    game = games.get(game_id)
     if game:
-        result = game.make_move(player_id, position)
+        result = game.make_move(player_id, position, winner=winner)
         
         if result.get('error'):
             emit('error', {'message': result['error']})
@@ -114,6 +110,7 @@ def make_move(data):
         socketio.emit('moveMade', {
             'position': position,
             'player': player_id,
+            'winner': winner,
             'result': result,
             'next_player': next_player,
             'phase': game.phase
@@ -169,7 +166,6 @@ def rematch_request(data):
         player_ids = list(rematch_votes[game_id])
         player_ids.reverse()
         rematch_votes[game_id] = set()
-        # Preserve mode for rematch
         games[game_id] = TicTacToe(mode=game.mode)
         for pid in player_ids:
             games[game_id].add_player(pid)
@@ -179,7 +175,7 @@ def rematch_request(data):
             socketio.emit('startWordFill', {
                 'gameId': game_id,
                 'first_player': first_player,
-                'players': games[game_id].players,  # Add player list
+                'players': games[game_id].players,
                 'sequence': games[game_id].wordfill_sequence,
                 'current_index': 0
             }, room=game_id)
@@ -187,7 +183,7 @@ def rematch_request(data):
             socketio.emit('startGame', {
                 'gameId': game_id,
                 'first_player': first_player,
-                'players': games[game_id].players  # Add player list
+                'players': games[game_id].players
             }, room=game_id)
     socketio.emit('rematchStatus', {'votes': votes, 'first_player': first_player}, room=game_id)
 

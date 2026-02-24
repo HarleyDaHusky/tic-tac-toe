@@ -8,9 +8,14 @@ class TicTacToe:
         self.word_board = [''] * 9  # Store words during word fill phase
         self.phase = 'wordfill' if mode == 'wordfill' else 'game'  # 'wordfill' or 'game'
         self.wordfill_turn = 0  # Track turns during word fill phase
-        # Word fill sequence: [0,1,1,2,2,3,3,4,4] (indices of players 0 and 1)
-        self.wordfill_sequence = [0, 1, 1, 0, 0, 1, 1, 0, 0]  # Player indices for each tile (0-based)
+        # Word fill sequence for 8 outer squares (skipping center index 4)
+        # Positions to fill in order: 0,1,2,3,5,6,7,8 (all except center)
+        self.outer_positions = [0, 1, 2, 3, 5, 6, 7, 8]
+        # Player sequence for these 8 positions: [0,1,1,0,0,1,1,0] (following the pattern but one less)
+        self.wordfill_sequence = [0, 1, 1, 0, 0, 1, 1, 0]  # Player indices for each outer tile
         self.current_wordfill_index = 0  # Current position in sequence
+        # Mark center as already filled with RPS
+        self.word_board[4] = "RPS"
 
     def add_player(self, player_id):
         if len(self.players) < 2 and player_id not in self.players:
@@ -18,13 +23,13 @@ class TicTacToe:
             return True
         return False
 
-    def make_move(self, player_id, position, word=None):
+    def make_move(self, player_id, position, word=None, winner=None):
         # Handle word fill phase
         if self.mode == 'wordfill' and self.phase == 'wordfill':
             return self.handle_word_fill(player_id, position, word)
         # Handle regular game phase
         else:
-            return self.handle_game_move(player_id, position)
+            return self.handle_game_move(player_id, position, winner)
 
     def handle_word_fill(self, player_id, position, word):
         # Validate position
@@ -36,7 +41,14 @@ class TicTacToe:
         if position < 0 or position >= len(self.board):
             return {'error': f'Invalid position {position}', 'winner': self.winner, 'phase': self.phase}
 
+        # Don't allow filling the center
+        if position == 4:
+            return {'error': 'The center square is Rock Paper Scissors and cannot be edited', 'winner': self.winner, 'phase': self.phase}
+
         # Check if it's the right player's turn
+        if self.current_wordfill_index >= len(self.wordfill_sequence):
+            return {'error': 'Word fill phase is complete', 'winner': self.winner, 'phase': self.phase}
+            
         expected_player_index = self.wordfill_sequence[self.current_wordfill_index]
         if self.players[expected_player_index] != player_id:
             return {'error': 'Not your turn in word fill phase', 'winner': self.winner, 'phase': self.phase}
@@ -55,7 +67,7 @@ class TicTacToe:
         # Move to next position in sequence
         self.current_wordfill_index += 1
         
-        # Check if word fill phase is complete
+        # Check if word fill phase is complete (all 8 outer squares filled)
         if self.current_wordfill_index >= len(self.wordfill_sequence):
             self.phase = 'game'
             self.turn = 0  # Start game with player 0
@@ -65,7 +77,8 @@ class TicTacToe:
                 'draw': False,
                 'phase': self.phase,
                 'wordfill_complete': True,
-                'next_player': self.players[0]
+                'next_player': self.players[0],
+                'current_wordfill_index': self.current_wordfill_index
             }
         
         # Determine next player for word fill
@@ -79,10 +92,11 @@ class TicTacToe:
             'wordfill_complete': False,
             'next_player': self.players[next_player_index],
             'filled_position': position,
-            'word': word.strip()
+            'word': word.strip(),
+            'current_wordfill_index': self.current_wordfill_index
         }
 
-    def handle_game_move(self, player_id, position):
+    def handle_game_move(self, player_id, position, winner=None):
         try:
             position = int(position)
         except (ValueError, TypeError):
@@ -94,28 +108,29 @@ class TicTacToe:
         if self.winner or self.board[position] != '':
             return {'error': 'Invalid move', 'winner': self.winner}
 
-        if len(self.players) < 2 or self.players[self.turn] != player_id:
-            return {'error': 'Not your turn or waiting for opponent', 'winner': self.winner}
+        if len(self.players) < 2:
+            return {'error': 'Waiting for opponent', 'winner': self.winner}
 
-        # In wordfill mode, use the words as markers
-        if self.mode == 'wordfill':
-            # Use the word that was placed in this position
-            self.board[position] = self.word_board[position]
+        # In wordfill mode, use the winner parameter to determine which player gets the square
+        if self.mode == 'wordfill' and winner is not None:
+            # Use the winner's symbol (X for player 0, O for player 1)
+            self.board[position] = 'X' if winner == 0 else 'O'
         else:
-            # Classic mode - use X and O
+            # Regular turn-based play
+            if self.players[self.turn] != player_id:
+                return {'error': 'Not your turn', 'winner': self.winner}
             self.board[position] = 'X' if self.turn == 0 else 'O'
+            self.turn = 1 - self.turn
 
         # Check for winner
         if self.check_winner():
-            self.winner = player_id
+            self.winner = self.players[0] if self.board.count('X') > self.board.count('O') else self.players[1]
             return {'board': self.board, 'winner': self.winner, 'draw': False, 'phase': self.phase}
 
         # Check for draw
         if self.check_draw():
             return {'board': self.board, 'winner': self.winner, 'draw': True, 'phase': self.phase}
 
-        # Continue game
-        self.turn = 1 - self.turn
         return {'board': self.board, 'winner': self.winner, 'draw': False, 'phase': self.phase}
 
     def check_winner(self):
@@ -139,5 +154,6 @@ class TicTacToe:
             'players': self.players,
             'turn': self.turn if self.phase == 'game' else self.wordfill_sequence[self.current_wordfill_index] if self.current_wordfill_index < len(self.wordfill_sequence) else None,
             'wordfill_progress': self.current_wordfill_index if self.mode == 'wordfill' else None,
-            'wordfill_sequence': self.wordfill_sequence if self.mode == 'wordfill' else None
+            'wordfill_sequence': self.wordfill_sequence if self.mode == 'wordfill' else None,
+            'outer_positions': self.outer_positions if self.mode == 'wordfill' else None
         }
