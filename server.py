@@ -6,8 +6,8 @@ import os
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 games = {}
-# track socket session -> { game_id, player_id } so we can act on disconnect
 sessions = {}
+rematch_votes = {}
 
 @app.route('/')
 def index():
@@ -16,52 +16,106 @@ def index():
 @socketio.on('createGame')
 def create_game(data):
     game_id = data['gameId']
+    mode = data.get('mode', 'classic')
+    
     if game_id in games:
         emit('error', {'message': 'Game ID already in use'})
         return
-    games[game_id] = TicTacToe()
+    
+    games[game_id] = TicTacToe(mode=mode)
     join_room(game_id)
-    emit('gameCreated', {'gameId': game_id})
-
+    emit('gameCreated', {'gameId': game_id, 'mode': mode})
 
 @socketio.on('joinGame')
 def join_game(data):
     game_id = data['gameId']
     player_id = data['playerId']
     game = games.get(game_id)
+    
     if game and game.add_player(player_id):
         join_room(game_id)
-        # record this socket session so we can find the player on disconnect
         sid = request.sid
         sessions[sid] = {'game_id': game_id, 'player_id': player_id}
         emit('gameJoined', {'gameId': game_id})
+        
         if len(game.players) == 2:
-            # Send first_player info so only they see "Your turn!"
-            emit('startGame', {'gameId': game_id, 'first_player': game.players[0]}, room=game_id)
+            if game.mode == 'wordfill':
+                emit('startWordFill', {
+                    'gameId': game_id,
+                    'first_player': game.players[0],
+                    'players': game.players,
+                    'sequence': game.wordfill_sequence,
+                    'current_index': 0
+                }, room=game_id)
+            else:
+                emit('startGame', {
+                    'gameId': game_id,
+                    'first_player': game.players[0],
+                    'players': game.players
+                }, room=game_id)
     else:
         emit('error', {'message': 'Game not found or full'})
+
+@socketio.on('placeWord')
+def place_word(data):
+    game_id = data['gameId']
+    position = data['position']
+    player_id = data['playerId']
+    word = data.get('word', '')
+    
+    game = games.get(game_id)
+    if game and game.mode == 'wordfill' and game.phase == 'wordfill':
+        result = game.make_move(player_id, position, word=word)
+        
+        if result.get('error'):
+            emit('error', {'message': result['error']})
+            return
+        
+        socketio.emit('wordPlaced', {
+            'position': position,
+            'player': player_id,
+            'word': word,
+            'result': result,
+            'next_player': result.get('next_player'),
+            'first_player': game.players[0],
+            'players': game.players
+        }, room=game_id)
+        
+        if result.get('wordfill_complete'):
+            socketio.emit('wordFillComplete', {
+                'board': result['board'],
+                'first_player': result['next_player'],
+                'players': game.players
+            }, room=game_id)
 
 @socketio.on('makeMove')
 def make_move(data):
     game_id = data['gameId']
     position = data['position']
     player_id = data['playerId']
+    winner = data.get('winner')
+    
     game = games.get(game_id)
     if game:
-        result = game.make_move(player_id, position)
-        # don't report a next_player if there's a winner or a draw
-        next_player = game.players[game.turn] if len(game.players) == 2 and not result.get('winner') and not result.get('draw') else None
-        socketio.emit(
-            'moveMade',
-            {
-                'position': position,
-                'player': player_id,
-                'result': result,
-                'next_player': next_player
-            },
-            room=game_id
-        )
-        # announce game over for winner or draw
+        result = game.make_move(player_id, position, winner=winner)
+        
+        if result.get('error'):
+            emit('error', {'message': result['error']})
+            return
+        
+        next_player = None
+        if game.phase == 'game' and len(game.players) == 2 and not result.get('winner') and not result.get('draw'):
+            next_player = game.players[game.turn]
+        
+        socketio.emit('moveMade', {
+            'position': position,
+            'player': player_id,
+            'winner': winner,
+            'result': result,
+            'next_player': next_player,
+            'phase': game.phase
+        }, room=game_id)
+        
         if result.get('winner'):
             socketio.emit('gameOver', {'winner': result['winner'], 'draw': False}, room=game_id)
         elif result.get('draw'):
@@ -72,20 +126,17 @@ def disconnect():
     sid = request.sid
     info = sessions.pop(sid, None)
     if not info:
-        print('User disconnected (unknown session)')
         return
     game_id = info.get('game_id')
     player_id = info.get('player_id')
     game = games.get(game_id)
     opponent = None
     if game:
-        # find the other player, if any
         for pid in game.players:
             if pid != player_id:
                 opponent = pid
                 break
         if opponent:
-            # notify the room that opponent wins by forfeit
             socketio.emit(
                 'gameOver',
                 {
@@ -96,12 +147,8 @@ def disconnect():
                 },
                 room=game_id
             )
-        # cleanup game state and any rematch votes
         games.pop(game_id, None)
         rematch_votes.pop(game_id, None) if 'rematch_votes' in globals() else None
-    print(f'User disconnected: sid={sid}, player_id={player_id}, game_id={game_id}')
-
-rematch_votes = {}
 
 @socketio.on('rematchRequest')
 def rematch_request(data):
@@ -124,7 +171,21 @@ def rematch_request(data):
         for pid in player_ids:
             games[game_id].add_player(pid)
         first_player = games[game_id].players[0]
-        socketio.emit('startGame', {'gameId': game_id, 'first_player': first_player}, room=game_id)
+        
+        if game.mode == 'wordfill':
+            socketio.emit('startWordFill', {
+                'gameId': game_id,
+                'first_player': first_player,
+                'players': games[game_id].players,
+                'sequence': games[game_id].wordfill_sequence,
+                'current_index': 0
+            }, room=game_id)
+        else:
+            socketio.emit('startGame', {
+                'gameId': game_id,
+                'first_player': first_player,
+                'players': games[game_id].players
+            }, room=game_id)
     socketio.emit('rematchStatus', {'votes': votes, 'first_player': first_player}, room=game_id)
 
 @socketio.on('leaveGame')
@@ -154,7 +215,6 @@ def leave_game(data):
         )
 
     games.pop(game_id, None)
-
 
 if __name__ == '__main__':
     import os

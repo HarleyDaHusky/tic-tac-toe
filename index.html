@@ -2,297 +2,814 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Tic-Tac-Toe</title>
-    <link rel="stylesheet" href="public/styles.css">
     <style>
-        /* modal / popup styles */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal {
-            background: #fff;
-            padding: 18px;
-            border-radius: 8px;
-            width: 360px;
-            max-width: calc(100% - 40px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        body {
+            font-family: Arial, sans-serif;
             text-align: center;
+            padding: 20px;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .close-btn {
-            background: transparent;
-            border: 0;
-            font-size: 18px;
-            cursor: pointer;
+        #gameModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1000;
+            min-width: 400px;
         }
 
         #board {
             display: grid;
-            grid-template-columns: repeat(3, 80px);
+            grid-template-columns: repeat(3, 100px);
             gap: 5px;
+            margin: 20px 0;
             justify-content: center;
-            margin: 12px auto;
         }
 
         .cell {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
+            background: #eee;
+            border: 2px solid #999;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
-            background: #eee;
+            font-size: 16px;
             cursor: pointer;
+            word-break: break-word;
+            padding: 5px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .cell.player1 {
+            background-color: #ffcccc !important;
+            border-color: #ff0000 !important;
+        }
+
+        .cell.player2 {
+            background-color: #b3d9ff !important;
+            border-color: #0066ff !important;
+        }
+
+        .cell .word-text {
+            font-size: 14px;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .cell .symbol-text {
+            font-size: 24px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .cell.center {
+            background-color: #e0e0e0 !important;
+            border-color: #666;
+            font-weight: bold;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .rps-text {
+            font-size: 12px;
+            line-height: 1.3;
+            white-space: pre-line;
+            text-align: center;
+        }
+
+        .cell.word-mode {
+            background: #e3f2fd;
+            border-color: #2196F3;
+        }
+
+        .cell.selected {
+            border: 4px solid #4CAF50 !important;
+            transform: scale(0.95);
+            background: #e8f5e8 !important;
+        }
+
+        #controls {
+            margin: 20px;
+        }
+
+        input,
+        select,
+        button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 5px;
             border: 1px solid #ccc;
-            box-sizing: border-box;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #closeBtn {
+            float: right;
+            cursor: pointer;
+            font-size: 24px;
+            color: #666;
+        }
+
+        #status {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        #turn {
+            font-size: 16px;
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        #turn.your-turn {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        #turn.opponent-turn {
+            background: #ffebee;
+            color: #c62828;
         }
 
         #rematchBtn {
-            display: none;
+            background: #ff9800;
             margin-top: 10px;
+            display: none;
+        }
+
+        #rematchBtn.pending {
+            background: #ffb74d;
+            cursor: wait;
+        }
+
+        #wordFillStatus {
+            margin: 10px 0;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .word-input-container {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+        }
+
+        #wordInput {
+            flex: 1;
+            max-width: 200px;
+        }
+
+        #submitWordBtn {
+            background: #2196F3;
+        }
+
+        .mode-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .mode-badge.wordfill {
+            background: #4CAF50;
+            color: white;
+        }
+
+        #leaveConfirm,
+        #winnerModal,
+        #challengeModal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            z-index: 1500;
+        }
+
+        #leaveConfirm>div,
+        #winnerModal>div,
+        #challengeModal>div {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .winner-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .winner-btn {
+            flex: 1;
+            padding: 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .winner-btn.player1-btn {
+            background: #ffcccc;
+            color: #990000;
+            border: 2px solid #ff0000;
+        }
+
+        .winner-btn.player2-btn {
+            background: #b3d9ff;
+            color: #003366;
+            border: 2px solid #0066ff;
+        }
+
+        .winner-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
     </style>
 </head>
 
 <body>
-    <h1>Live Tic-Tac-Toe</h1>
+    <h1>Tic-Tac-Toe</h1>
 
     <div id="controls">
-        <input id="gameId" placeholder="Game ID" />
-        <input id="playerId" placeholder="Your name" />
-        <button id="createBtn">Create + Join</button>
-        <button id="joinBtn">Join</button>
+        <input id="gameId" placeholder="Enter Game ID">
+        <input id="playerId" placeholder="Enter Your Name">
+        <select id="modeSelector">
+            <option value="wordfill" selected>Word Fill Mode</option>
+        </select>
+        <button onclick="createGame()">Create Game</button>
+        <button onclick="joinGame()">Join Game</button>
     </div>
 
-    <div id="gameModalBackdrop" class="modal-backdrop">
-        <div class="modal">
-            <div class="modal-header">
-                <strong>Game</strong>
-                <button class="close-btn" id="closeModalBtn">&times;</button>
+    <div id="gameModal">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span id="closeBtn" onclick="closeModal()">✖</span>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: center;">
+            <strong>Game</strong>
+            <span id="modeDisplay" class="mode-badge wordfill">Word Fill</span>
+        </div>
+
+        <div id="status"></div>
+        <div id="turn"></div>
+        <div id="wordFillStatus" style="display: none;"></div>
+
+        <div class="word-input-container" id="wordInputContainer" style="display: none;">
+            <input type="text" id="wordInput" placeholder="Enter a word" maxlength="20">
+            <button id="submitWordBtn" onclick="submitWord()">Place Word</button>
+        </div>
+
+        <div id="board"></div>
+        <button id="rematchBtn" onclick="rematch()">Rematch</button>
+
+        <div id="leaveConfirm">
+            <div>
+                <div style="margin-bottom:12px;font-weight:600;">Leave game?</div>
+                <div style="margin-bottom:12px;">This will forfeit the game.</div>
+                <button onclick="confirmLeave()">Leave</button>
+                <button onclick="cancelLeave()">Cancel</button>
             </div>
+        </div>
 
-            <div id="status"></div>
-            <div id="turn"></div>
-            <div id="board" style="display:none"></div>
-            <button id="rematchBtn">Rematch?</button>
-
-            <div id="leaveConfirm"
-                style="display:none; position:absolute; inset:0; align-items:center; justify-content:center;">
-                <div
-                    style="background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.2); width: 320px;">
-                    <div style="margin-bottom:12px;font-weight:600;">Leave game?</div>
-                    <div style="margin-bottom:12px;">This will forfeit the game.</div>
-                    <button id="confirmLeaveBtn"
-                        style="padding:8px 12px; background:#e53e3e; color:#fff; border:0; border-radius:6px; cursor:pointer;">Leave</button>
-                    <button id="cancelLeaveBtn"
-                        style="padding:8px 12px; background:#edf2f7; border:0; border-radius:6px; cursor:pointer;">Cancel</button>
+        <div id="winnerModal">
+            <div>
+                <h3>Who won this challenge?</h3>
+                <div class="winner-buttons">
+                    <button class="winner-btn player1-btn" onclick="selectWinner(0)">Player 1</button>
+                    <button class="winner-btn player2-btn" onclick="selectWinner(1)">Player 2</button>
                 </div>
+                <button onclick="cancelWinnerSelection()"
+                    style="background: #6c757d; width: 100%; margin-top: 10px;">Cancel</button>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-        const socket = io({
-            reconnection: true
-        });
+        const socket = io();
 
         let gameId = '';
         let playerId = '';
         let myTurn = false;
         let board = Array(9).fill('');
         let gameStarted = false;
+        let wordFillPhase = true;
+        let wordFillProgress = 0;
+        let wordFillSequence = [0, 1, 1, 0, 0, 1, 1, 0];
+        let selectedCell = -1;
+        let pendingChallengeCell = -1;
+        let pendingWinnerCell = -1;
+        let playerSymbols = {};
+        let wordStorage = {};
+        let players = [];
+        let firstPlayer = '';
+        let rematchVoted = false;
 
+        const modal = document.getElementById('gameModal');
+        const boardEl = document.getElementById('board');
         const statusEl = document.getElementById('status');
         const turnEl = document.getElementById('turn');
-        const boardEl = document.getElementById('board');
-        const modalBackdrop = document.getElementById('gameModalBackdrop');
         const rematchBtn = document.getElementById('rematchBtn');
+        const modeDisplay = document.getElementById('modeDisplay');
+        const wordFillStatus = document.getElementById('wordFillStatus');
+        const wordInputContainer = document.getElementById('wordInputContainer');
+        const wordInput = document.getElementById('wordInput');
         const leaveConfirm = document.getElementById('leaveConfirm');
-        const gameIdInput = document.getElementById('gameId');
-        const playerIdInput = document.getElementById('playerId');
+        const winnerModal = document.getElementById('winnerModal');
 
+        function createGame() {
+            gameId = document.getElementById('gameId').value.trim();
+            playerId = document.getElementById('playerId').value.trim();
 
-        function showModal() {
-            modalBackdrop.style.display = 'flex';
+            if (!gameId || !playerId) {
+                alert('Please enter both Game ID and Your Name');
+                return;
+            }
+
+            modal.style.display = 'block';
+            statusEl.innerText = 'Creating game...';
+
+            socket.emit('createGame', { gameId, mode: 'wordfill' });
+            socket.emit('joinGame', { gameId, playerId });
         }
 
-        function hideModal() {
-            modalBackdrop.style.display = 'none';
+        function joinGame() {
+            gameId = document.getElementById('gameId').value.trim();
+            playerId = document.getElementById('playerId').value.trim();
+
+            if (!gameId || !playerId) {
+                alert('Please enter both Game ID and Your Name');
+                return;
+            }
+
+            modal.style.display = 'block';
+            statusEl.innerText = 'Joining game...';
+
+            socket.emit('joinGame', { gameId, playerId });
         }
 
-        function resetState() {
-            board = Array(9).fill('');
-            renderBoard();
-            statusEl.innerText = '';
-            turnEl.innerText = '';
-            rematchBtn.style.display = 'none';
-            rematchBtn.disabled = false;
-            myTurn = false;
-            gameStarted = false;
-            gameId = '';
-            playerId = '';
+        function closeModal() {
+            if (gameStarted) {
+                leaveConfirm.style.display = 'flex';
+            } else {
+                forceClose();
+            }
         }
 
-        function doImmediateClose() {
+        function forceClose() {
+            modal.style.display = 'none';
+            leaveConfirm.style.display = 'none';
+            winnerModal.style.display = 'none';
+            hideChallengeModal();
             if (gameId && playerId) {
                 socket.emit('leaveGame', { gameId, playerId });
             }
-
-            leaveConfirm.style.display = 'none';
-            hideModal();
-            resetState();
         }
 
+        function confirmLeave() {
+            forceClose();
+        }
 
+        function cancelLeave() {
+            leaveConfirm.style.display = 'none';
+        }
 
-        closeModalBtn.onclick = () => {
-            if (gameStarted) leaveConfirm.style.display = 'flex';
-            else doImmediateClose();
-        };
+        function showChallengeModal() {
+            let challengeModal = document.getElementById('challengeModal');
+            if (!challengeModal) {
+                challengeModal = document.createElement('div');
+                challengeModal.id = 'challengeModal';
+                challengeModal.innerHTML = `
+                    <div>
+                        <h3>Challenge this tile?</h3>
+                        <p>Do you want to challenge for this tile?</p>
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                            <button id="confirmChallengeBtn" style="background: #4CAF50; padding: 10px 20px;">Yes, Challenge!</button>
+                            <button id="cancelChallengeBtn" style="background: #6c757d; padding: 10px 20px;">Cancel</button>
+                        </div>
+                    </div>
+                `;
 
-        cancelLeaveBtn.onclick = () => leaveConfirm.style.display = 'none';
-        confirmLeaveBtn.onclick = doImmediateClose;
+                document.getElementById('gameModal').appendChild(challengeModal);
 
-        document.getElementById('createBtn').onclick = () => {
-            gameId = gameIdInput.value.trim();
-            playerId = playerIdInput.value.trim();
-            if (!gameId || !playerId) return alert('Enter game + name');
+                challengeModal.style.position = 'absolute';
+                challengeModal.style.top = '0';
+                challengeModal.style.left = '0';
+                challengeModal.style.width = '100%';
+                challengeModal.style.height = '100%';
+                challengeModal.style.background = 'rgba(0, 0, 0, 0.5)';
+                challengeModal.style.display = 'none';
+                challengeModal.style.alignItems = 'center';
+                challengeModal.style.justifyContent = 'center';
+                challengeModal.style.borderRadius = '10px';
+                challengeModal.style.zIndex = '2000';
 
-            resetUIForNewGame();
-            showModal();
+                const innerDiv = challengeModal.querySelector('div');
+                if (innerDiv) {
+                    innerDiv.style.background = 'white';
+                    innerDiv.style.padding = '20px';
+                    innerDiv.style.borderRadius = '8px';
+                    innerDiv.style.width = '300px';
+                    innerDiv.style.textAlign = 'center';
+                }
 
-            socket.emit('createGame', { gameId });
-            socket.emit('joinGame', { gameId, playerId });
-        };
+                document.getElementById('confirmChallengeBtn').onclick = () => {
+                    challengeModal.style.display = 'none';
+                    pendingWinnerCell = pendingChallengeCell;
+                    winnerModal.style.display = 'flex';
+                    pendingChallengeCell = -1;
+                };
 
+                document.getElementById('cancelChallengeBtn').onclick = () => {
+                    challengeModal.style.display = 'none';
+                    pendingChallengeCell = -1;
+                };
+            }
+            challengeModal.style.display = 'flex';
+        }
 
-        document.getElementById('joinBtn').onclick = () => {
-            gameId = gameIdInput.value.trim();
-            playerId = playerIdInput.value.trim();
-            if (!gameId || !playerId) return alert('Enter game + name');
-
-            resetUIForNewGame();
-            showModal();
-
-            socket.emit('joinGame', { gameId, playerId });
-        };
-
+        function hideChallengeModal() {
+            const challengeModal = document.getElementById('challengeModal');
+            if (challengeModal) {
+                challengeModal.style.display = 'none';
+            }
+        }
 
         function renderBoard() {
             boardEl.innerHTML = '';
-            boardEl.style.display = 'grid';
-            board.forEach((cell, i) => {
-                const d = document.createElement('div');
-                d.className = 'cell';
-                d.textContent = cell;
-                d.onclick = () => {
-                    if (!myTurn || cell) return;
-                    socket.emit('makeMove', { gameId, position: i, playerId });
-                };
-                boardEl.appendChild(d);
-            });
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+
+                if (i === 4) {
+                    cell.classList.add('center');
+                }
+
+                if (playerSymbols[i] !== undefined) {
+                    cell.classList.add(`player${playerSymbols[i] + 1}`);
+                }
+
+                if (wordFillPhase) {
+                    cell.classList.add('word-mode');
+                }
+
+                if (i === selectedCell) {
+                    cell.classList.add('selected');
+                }
+
+                // Handle center square specially
+                if (i === 4) {
+                    const symbol = board[i] === 'X' || board[i] === 'O' ? board[i] : '';
+                    if (symbol) {
+                        // Center has been claimed - show X or O
+                        cell.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <span class="symbol-text">${symbol}</span>
+                        <span class="word-text">RPS</span>
+                    </div>
+                `;
+                    } else if (wordFillPhase) {
+                        // Word fill phase - show RPS text
+                        cell.innerHTML = '<div class="rps-text">Rock<br>Paper<br>Scissors</div>';
+                    } else {
+                        // Game mode but not claimed yet - show RPS text
+                        cell.innerHTML = '<div class="rps-text">Rock<br>Paper<br>Scissors</div>';
+                    }
+                } else {
+                    // Non-center squares
+                    const word = wordStorage[i] || board[i] || '';
+                    const symbol = board[i] === 'X' || board[i] === 'O' ? board[i] : '';
+
+                    if (symbol) {
+                        cell.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <span class="symbol-text">${symbol}</span>
+                        <span class="word-text">${word}</span>
+                    </div>
+                `;
+                    } else {
+                        cell.innerText = word;
+                    }
+                }
+
+                cell.onclick = () => handleCellClick(i);
+                boardEl.appendChild(cell);
+            }
         }
 
-        socket.on('startGame', data => {
-            statusEl.innerText = 'Game started!';
-            board = Array(9).fill('');
+        function handleCellClick(index) {
+            if (!gameStarted) {
+                alert('Game not started yet');
+                return;
+            }
+
+            if (wordFillPhase) {
+                if (!myTurn) {
+                    alert("It's not your turn!");
+                    return;
+                }
+                if (index === 4) {
+                    alert('The center square is Rock Paper Scissors!');
+                    return;
+                }
+                if (board[index]) {
+                    alert('This cell already has a word!');
+                    return;
+                }
+
+                selectedCell = index;
+                wordInputContainer.style.display = 'flex';
+                wordInput.focus();
+                renderBoard();
+            } else {
+                if (!myTurn) {
+                    alert("It's not your turn to challenge!");
+                    return;
+                }
+
+                // Check if cell already has X or O (taken)
+                if (board[index] === 'X' || board[index] === 'O') {
+                    alert('This cell is already taken!');
+                    return;
+                }
+
+                // Special handling for center square (RPS)
+                if (index === 4) {
+                    // Center square can be challenged even though it has no word
+                    pendingChallengeCell = index;
+                    showChallengeModal();
+                    return;
+                }
+
+                // For non-center squares, make sure there's a word to challenge
+                if (!board[index] && !wordStorage[index]) {
+                    alert('No word in this cell to challenge!');
+                    return;
+                }
+
+                pendingChallengeCell = index;
+                showChallengeModal();
+            }
+        }
+
+        function submitWord() {
+            const word = wordInput.value.trim();
+            if (!word) {
+                alert('Please enter a word');
+                return;
+            }
+            if (selectedCell === -1) {
+                alert('Please select a cell first');
+                return;
+            }
+
+            const position = selectedCell;
+            const currentPlayerIndex = wordFillSequence[wordFillProgress];
+
+            wordStorage[position] = word;
+            playerSymbols[position] = currentPlayerIndex;
+            board[position] = word;
+
+            selectedCell = -1;
+            wordInput.value = '';
+            wordInputContainer.style.display = 'none';
+
+            socket.emit('placeWord', {
+                gameId,
+                position: position,
+                playerId,
+                word
+            });
+
+            wordFillProgress++;
+            if (wordFillProgress < 8) {
+                wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your word`;
+            }
+
             renderBoard();
-            myTurn = data.first_player === playerId;
-            turnEl.innerText = myTurn ? 'Your turn!' : 'Waiting for opponent...';
-            rematchBtn.style.display = 'none';
-            rematchBtn.disabled = false;
-            gameStarted = true;
+        }
+
+        function selectWinner(playerNum) {
+            if (pendingWinnerCell === -1) return;
+
+            if (!myTurn) {
+                alert("It's not your turn anymore!");
+                winnerModal.style.display = 'none';
+                pendingWinnerCell = -1;
+                return;
+            }
+
+            socket.emit('makeMove', {
+                gameId,
+                position: pendingWinnerCell,
+                playerId,
+                winner: playerNum
+            });
+
+            winnerModal.style.display = 'none';
+            pendingWinnerCell = -1;
+        }
+
+        function cancelWinnerSelection() {
+            winnerModal.style.display = 'none';
+            pendingWinnerCell = -1;
+        }
+
+        function rematch() {
+            if (rematchVoted) return;
+
+            rematchVoted = true;
+            rematchBtn.disabled = true;
+            rematchBtn.classList.add('pending');
+            rematchBtn.innerText = 'Waiting for opponent...';
+
+            socket.emit('rematchRequest', { gameId, playerId });
+        }
+
+        socket.on('gameCreated', (data) => {
+            statusEl.innerText = 'Waiting for opponent...';
         });
 
-        socket.on('moveMade', data => {
-            board = data.result.board;
+        socket.on('gameJoined', (data) => {
+            statusEl.innerText = 'Waiting for opponent...';
+        });
+
+        socket.on('startWordFill', (data) => {
+            players = data.players;
+            firstPlayer = data.first_player;
+
+            wordFillPhase = true;
+            gameStarted = true;
+            board = Array(9).fill('');
+            board[4] = 'RPS';
+            playerSymbols = {};
+            wordStorage = {};
+            wordFillProgress = 0;
+            selectedCell = -1;
+            rematchVoted = false;
+
+            myTurn = (firstPlayer === playerId);
+
+            statusEl.innerText = 'Word Fill Phase';
+            turnEl.innerText = myTurn ? 'Your turn to place a word!' : 'Opponent is placing words...';
+            turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+
+            wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your word`;
+            wordFillStatus.style.display = 'block';
+
             renderBoard();
+            rematchBtn.style.display = 'none';
+            rematchBtn.disabled = false;
+            rematchBtn.classList.remove('pending');
+            rematchBtn.innerText = 'Rematch';
+        });
+
+        socket.on('wordPlaced', (data) => {
+            board = data.result.board;
+            board[4] = 'RPS';
+
+            if (data.position !== 4 && data.word) {
+                wordStorage[data.position] = data.word;
+                if (data.player === players[0]) {
+                    playerSymbols[data.position] = 0;
+                } else if (data.player === players[1]) {
+                    playerSymbols[data.position] = 1;
+                }
+                board[data.position] = data.word;
+            }
+
             if (data.next_player) {
-                myTurn = data.next_player === playerId;
-                turnEl.innerText = myTurn ? 'Your turn!' : 'Waiting for opponent...';
+                myTurn = (data.next_player === playerId);
+                wordFillProgress = data.result.current_wordfill_index || wordFillProgress + 1;
+
+                turnEl.innerText = myTurn ? 'Your turn to place a word!' : 'Opponent is placing words...';
+                turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+
+                if (wordFillProgress < 8) {
+                    wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your word`;
+                }
+            }
+
+            renderBoard();
+        });
+
+        socket.on('wordFillComplete', (data) => {
+            wordFillPhase = false;
+            board = data.board;
+            board[4] = 'RPS';
+
+            for (let i = 0; i < 9; i++) {
+                if (i !== 4 && board[i] && !wordStorage[i]) {
+                    wordStorage[i] = board[i];
+                    if (playerSymbols[i] === undefined) {
+                        const wordIndex = i < 4 ? i : i - 1;
+                        playerSymbols[i] = wordFillSequence[wordIndex] || 0;
+                    }
+                }
+            }
+
+            selectedCell = -1;
+            wordInputContainer.style.display = 'none';
+            renderBoard();
+
+            statusEl.innerText = 'Game starting...';
+            wordFillStatus.style.display = 'none';
+
+            setTimeout(() => {
+                myTurn = (data.first_player === playerId);
+                turnEl.innerText = myTurn ? 'Your turn! Click a square to challenge it' : 'Opponent\'s turn to challenge';
+                turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+                statusEl.innerText = 'Challenge tiles and choose the winner';
+                gameStarted = true;
+            }, 2000);
+        });
+
+        socket.on('moveMade', (data) => {
+            console.log('Move made - updating board:', data);
+            board = data.result.board;
+            board[4] = board[4] || 'RPS'; // Keep RPS if center not claimed
+
+            if (data.winner !== undefined) {
+                playerSymbols[data.position] = data.winner;
+                console.log(`Cell ${data.position} now owned by player ${data.winner + 1} with symbol ${board[data.position]}`);
+            }
+
+            renderBoard();
+
+            if (data.next_player) {
+                myTurn = (data.next_player === playerId);
+                turnEl.innerText = myTurn ? 'Your turn! Click a square to challenge it' : 'Opponent\'s turn to challenge';
+                turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
             }
         });
 
-        socket.on('gameOver', data => {
+        socket.on('gameOver', (data) => {
             gameStarted = false;
-            myTurn = false;
 
             if (data.draw) {
-                statusEl.innerText = 'Draw';
-                turnEl.innerText = '';
-                rematchBtn.style.display = 'inline-block';
-            }
-            else if (data.forfeit) {
-                statusEl.innerText = `Winner: ${data.winner}`;
-                turnEl.innerText = 'Opponent disconnected — win by forfeit';
-                rematchBtn.style.display = 'none';
-                gameStarted = false;
+                statusEl.innerText = 'Game Over - Draw!';
+            } else {
+                statusEl.innerText = `Game Over - Winner: ${data.winner}`;
             }
 
-            else {
-                statusEl.innerText = `Winner: ${data.winner}`;
-                turnEl.innerText = '';
-                rematchBtn.style.display = 'inline-block';
-            }
-
-            rematchBtn.disabled = false;
-        });
-
-        socket.on('gameCreated', data => {
-            statusEl.innerText = `Game ${data.gameId} created. Waiting for opponent...`;
-            boardEl.style.display = 'none';
-        });
-
-        socket.on('gameJoined', data => {
-            statusEl.innerText = `Joined game ${data.gameId}. Waiting for opponent...`;
-            boardEl.style.display = 'none';
-        });
-
-        socket.on('error', data => {
-            alert(data.message || 'An error occurred');
-            doImmediateClose();
-        });
-
-        function resetUIForNewGame() {
-            board = Array(9).fill('');
-            boardEl.innerHTML = '';
-            boardEl.style.display = 'none';
-
-            statusEl.innerText = 'Waiting for opponent...';
             turnEl.innerText = '';
-            rematchBtn.style.display = 'none';
+            turnEl.className = '';
+            rematchBtn.style.display = 'block';
             rematchBtn.disabled = false;
-
-            leaveConfirm.style.display = 'none';
-
+            rematchBtn.classList.remove('pending');
+            rematchBtn.innerText = 'Rematch';
             myTurn = false;
-            gameStarted = false;
-        }
+            wordFillPhase = false;
+            rematchVoted = false;
+        });
 
+        socket.on('error', (data) => {
+            alert('Error: ' + data.message);
+        });
 
-
-
-        rematchBtn.onclick = () => {
-            rematchBtn.disabled = true;
-            statusEl.innerText = 'Waiting for opponent to accept rematch...';
-            socket.emit('rematchRequest', { gameId, playerId });
-        };
+        socket.on('rematchStatus', (data) => {
+            if (data.votes === 2) {
+                statusEl.innerText = 'Rematch accepted! Starting game...';
+                rematchBtn.style.display = 'none';
+            } else if (data.votes === 1) {
+                statusEl.innerText = 'Opponent wants a rematch! Click Rematch to accept.';
+            }
+        });
     </script>
 </body>
 
