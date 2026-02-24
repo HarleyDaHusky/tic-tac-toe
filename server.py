@@ -126,7 +126,6 @@ def disconnect():
     sid = request.sid
     info = sessions.pop(sid, None)
     if not info:
-        print('User disconnected (unknown session)')
         return
     game_id = info.get('game_id')
     player_id = info.get('player_id')
@@ -150,7 +149,6 @@ def disconnect():
             )
         games.pop(game_id, None)
         rematch_votes.pop(game_id, None) if 'rematch_votes' in globals() else None
-    print(f'User disconnected: sid={sid}, player_id={player_id}, game_id={game_id}')
 
 @socketio.on('rematchRequest')
 def rematch_request(data):
