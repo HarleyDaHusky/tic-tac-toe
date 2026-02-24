@@ -1,299 +1,607 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Tic-Tac-Toe</title>
-    <link rel="stylesheet" href="public/styles.css">
     <style>
-        /* modal / popup styles */
-        .modal-backdrop {
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #gameModal {
             position: fixed;
-            inset: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            min-width: 400px;
+        }
+        
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            gap: 5px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: #eee;
+            border: 2px solid #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            word-break: break-word;
+            padding: 5px;
+            transition: all 0.2s;
+        }
+        
+        /* Player colors */
+        .cell.player1 {
+            background-color: #ffcccc;  /* Light red */
+            border-color: #ff0000;
+            font-weight: bold;
+        }
+        
+        .cell.player2 {
+            background-color: #b3d9ff;  /* Light blue */
+            border-color: #0066ff;
+            font-weight: bold;
+        }
+        
+        /* Word fill mode styles */
+        .cell.word-mode {
+            background: #e3f2fd;
+            border-color: #2196F3;
+        }
+        
+        .cell.word-mode:hover {
+            background: #bbdefb;
+        }
+        
+        .cell.selected {
+            border: 4px solid #4CAF50 !important;
+            transform: scale(0.95);
+        }
+        
+        .cell:hover {
+            background: #ddd;
+        }
+        
+        #controls {
+            margin: 20px;
+        }
+        
+        input, select, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        #closeBtn {
+            float: right;
+            cursor: pointer;
+            font-size: 24px;
+            color: #666;
+        }
+        
+        #closeBtn:hover {
+            color: #333;
+        }
+        
+        #status {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #333;
+        }
+        
+        #turn {
+            font-size: 16px;
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        
+        #turn.your-turn {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        #turn.opponent-turn {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        #rematchBtn {
+            background: #ff9800;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        #rematchBtn:hover {
+            background: #f57c00;
+        }
+        
+        #wordFillStatus {
+            margin: 10px 0;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-style: italic;
+        }
+        
+        .word-input-container {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+        }
+        
+        #wordInput {
+            flex: 1;
+            max-width: 200px;
+        }
+        
+        #submitWordBtn {
+            background: #2196F3;
+        }
+        
+        #submitWordBtn:hover {
+            background: #1976D2;
+        }
+        
+        #modeSelector {
+            background: white;
+        }
+        
+        .mode-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+        
+        .mode-badge.wordfill {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .mode-badge.classic {
+            background: #2196F3;
+            color: white;
+        }
+        
+        #leaveConfirm {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.5);
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            border-radius: 10px;
         }
-
-        .modal {
-            background: #fff;
-            padding: 18px;
+        
+        #leaveConfirm > div {
+            background: white;
+            padding: 20px;
             border-radius: 8px;
-            width: 360px;
-            max-width: calc(100% - 40px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            text-align: center;
+            width: 280px;
         }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
+        
+        #leaveConfirm button {
+            margin: 5px;
         }
-
-        .close-btn {
-            background: transparent;
-            border: 0;
-            font-size: 18px;
-            cursor: pointer;
+        
+        #confirmLeaveBtn {
+            background: #e53e3e;
         }
-
-        #board {
-            display: grid;
-            grid-template-columns: repeat(3, 80px);
-            gap: 5px;
-            justify-content: center;
-            margin: 12px auto;
-        }
-
-        .cell {
-            width: 80px;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            background: #eee;
-            cursor: pointer;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-
-        #rematchBtn {
-            display: none;
-            margin-top: 10px;
+        
+        #cancelLeaveBtn {
+            background: #6c757d;
         }
     </style>
 </head>
-
 <body>
-    <h1>Live Tic-Tac-Toe</h1>
-
+    <h1>Tic-Tac-Toe</h1>
+    
     <div id="controls">
-        <input id="gameId" placeholder="Game ID" />
-        <input id="playerId" placeholder="Your name" />
-        <button id="createBtn">Create + Join</button>
-        <button id="joinBtn">Join</button>
+        <input id="gameId" placeholder="Game ID" value="test123">
+        <input id="playerId" placeholder="Your name" value="player1">
+        <select id="modeSelector">
+            <option value="classic">Classic Mode</option>
+            <option value="wordfill">Word Fill Mode</option>
+        </select>
+        <button onclick="createGame()">Create Game</button>
+        <button onclick="joinGame()">Join Game</button>
     </div>
-
-    <div id="gameModalBackdrop" class="modal-backdrop">
-        <div class="modal">
-            <div class="modal-header">
-                <strong>Game</strong>
-                <button class="close-btn" id="closeModalBtn">&times;</button>
-            </div>
-
-            <div id="status"></div>
-            <div id="turn"></div>
-            <div id="board" style="display:none"></div>
-            <button id="rematchBtn">Rematch?</button>
-
-            <div id="leaveConfirm"
-                style="display:none; position:absolute; inset:0; align-items:center; justify-content:center;">
-                <div
-                    style="background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.2); width: 320px;">
-                    <div style="margin-bottom:12px;font-weight:600;">Leave game?</div>
-                    <div style="margin-bottom:12px;">This will forfeit the game.</div>
-                    <button id="confirmLeaveBtn"
-                        style="padding:8px 12px; background:#e53e3e; color:#fff; border:0; border-radius:6px; cursor:pointer;">Leave</button>
-                    <button id="cancelLeaveBtn"
-                        style="padding:8px 12px; background:#edf2f7; border:0; border-radius:6px; cursor:pointer;">Cancel</button>
-                </div>
+    
+    <div id="gameModal">
+        <div style="text-align: right; margin-bottom: 10px;">
+            <span id="closeBtn" onclick="closeModal()">✖</span>
+        </div>
+        
+        <div style="display: flex; align-items: center; justify-content: center;">
+            <strong>Game</strong>
+            <span id="modeDisplay" class="mode-badge classic">Classic</span>
+        </div>
+        
+        <div id="status"></div>
+        <div id="turn"></div>
+        <div id="wordFillStatus" style="display: none;"></div>
+        
+        <div class="word-input-container" id="wordInputContainer" style="display: none;">
+            <input type="text" id="wordInput" placeholder="Enter a word" maxlength="20">
+            <button id="submitWordBtn" onclick="submitWord()">Place Word</button>
+        </div>
+        
+        <div id="board"></div>
+        <button id="rematchBtn" onclick="rematch()">Rematch</button>
+        
+        <div id="leaveConfirm">
+            <div>
+                <div style="margin-bottom:12px;font-weight:600;">Leave game?</div>
+                <div style="margin-bottom:12px;">This will forfeit the game.</div>
+                <button id="confirmLeaveBtn" onclick="confirmLeave()">Leave</button>
+                <button id="cancelLeaveBtn" onclick="cancelLeave()">Cancel</button>
             </div>
         </div>
     </div>
-
+    
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
-        const socket = io({
-            reconnection: true
-        });
-
+        const socket = io();
         let gameId = '';
         let playerId = '';
         let myTurn = false;
         let board = Array(9).fill('');
         let gameStarted = false;
-
+        let gameMode = 'classic';
+        let wordFillPhase = false;
+        let wordFillProgress = 0;
+        let wordFillSequence = [0, 1, 1, 0, 0, 1, 1, 0, 0];
+        let selectedCell = -1;
+        let playerSymbols = {}; // Track which player owns which cell
+        
+        const modal = document.getElementById('gameModal');
+        const boardEl = document.getElementById('board');
         const statusEl = document.getElementById('status');
         const turnEl = document.getElementById('turn');
-        const boardEl = document.getElementById('board');
-        const modalBackdrop = document.getElementById('gameModalBackdrop');
         const rematchBtn = document.getElementById('rematchBtn');
+        const modeDisplay = document.getElementById('modeDisplay');
+        const wordFillStatus = document.getElementById('wordFillStatus');
+        const wordInputContainer = document.getElementById('wordInputContainer');
+        const wordInput = document.getElementById('wordInput');
         const leaveConfirm = document.getElementById('leaveConfirm');
-        const gameIdInput = document.getElementById('gameId');
-        const playerIdInput = document.getElementById('playerId');
-
-
-        function showModal() {
-            modalBackdrop.style.display = 'flex';
+        
+        function createGame() {
+            gameId = document.getElementById('gameId').value;
+            playerId = document.getElementById('playerId').value;
+            gameMode = document.getElementById('modeSelector').value;
+            
+            if (!gameId || !playerId) {
+                alert('Enter game ID and name');
+                return;
+            }
+            
+            modeDisplay.textContent = gameMode === 'wordfill' ? 'Word Fill' : 'Classic';
+            modeDisplay.className = `mode-badge ${gameMode}`;
+            
+            modal.style.display = 'block';
+            statusEl.innerText = 'Creating game...';
+            boardEl.style.display = 'grid';
+            
+            socket.emit('createGame', { gameId, mode: gameMode });
+            socket.emit('joinGame', { gameId, playerId });
         }
-
-        function hideModal() {
-            modalBackdrop.style.display = 'none';
+        
+        function joinGame() {
+            gameId = document.getElementById('gameId').value;
+            playerId = document.getElementById('playerId').value;
+            
+            if (!gameId || !playerId) {
+                alert('Enter game ID and name');
+                return;
+            }
+            
+            modal.style.display = 'block';
+            statusEl.innerText = 'Joining game...';
+            boardEl.style.display = 'grid';
+            
+            socket.emit('joinGame', { gameId, playerId });
         }
-
-        function resetState() {
-            board = Array(9).fill('');
-            renderBoard();
-            statusEl.innerText = '';
-            turnEl.innerText = '';
-            rematchBtn.style.display = 'none';
-            rematchBtn.disabled = false;
-            myTurn = false;
-            gameStarted = false;
-            gameId = '';
-            playerId = '';
+        
+        function closeModal() {
+            if (gameStarted) {
+                leaveConfirm.style.display = 'flex';
+            } else {
+                forceClose();
+            }
         }
-
-        function doImmediateClose() {
+        
+        function forceClose() {
+            modal.style.display = 'none';
+            leaveConfirm.style.display = 'none';
             if (gameId && playerId) {
                 socket.emit('leaveGame', { gameId, playerId });
             }
-
-            leaveConfirm.style.display = 'none';
-            hideModal();
             resetState();
         }
-
-
-
-        closeModalBtn.onclick = () => {
-            if (gameStarted) leaveConfirm.style.display = 'flex';
-            else doImmediateClose();
-        };
-
-        cancelLeaveBtn.onclick = () => leaveConfirm.style.display = 'none';
-        confirmLeaveBtn.onclick = doImmediateClose;
-
-        document.getElementById('createBtn').onclick = () => {
-            gameId = gameIdInput.value.trim();
-            playerId = playerIdInput.value.trim();
-            if (!gameId || !playerId) return alert('Enter game + name');
-
-            resetUIForNewGame();
-            showModal();
-
-            socket.emit('createGame', { gameId });
-            socket.emit('joinGame', { gameId, playerId });
-        };
-
-
-        document.getElementById('joinBtn').onclick = () => {
-            gameId = gameIdInput.value.trim();
-            playerId = playerIdInput.value.trim();
-            if (!gameId || !playerId) return alert('Enter game + name');
-
-            resetUIForNewGame();
-            showModal();
-
-            socket.emit('joinGame', { gameId, playerId });
-        };
-
-
+        
+        function confirmLeave() {
+            forceClose();
+        }
+        
+        function cancelLeave() {
+            leaveConfirm.style.display = 'none';
+        }
+        
+        function resetState() {
+            board = Array(9).fill('');
+            gameStarted = false;
+            myTurn = false;
+            wordFillPhase = false;
+            selectedCell = -1;
+            playerSymbols = {};
+            boardEl.innerHTML = '';
+            statusEl.innerText = '';
+            turnEl.innerText = '';
+            turnEl.className = '';
+            wordFillStatus.style.display = 'none';
+            wordInputContainer.style.display = 'none';
+            rematchBtn.style.display = 'none';
+        }
+        
         function renderBoard() {
             boardEl.innerHTML = '';
-            boardEl.style.display = 'grid';
-            board.forEach((cell, i) => {
-                const d = document.createElement('div');
-                d.className = 'cell';
-                d.textContent = cell;
-                d.onclick = () => {
-                    if (!myTurn || cell) return;
-                    socket.emit('makeMove', { gameId, position: i, playerId });
-                };
-                boardEl.appendChild(d);
-            });
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                
+                // Add player color class
+                if (playerSymbols[i] !== undefined) {
+                    cell.classList.add(`player${playerSymbols[i] + 1}`);
+                }
+                
+                if (wordFillPhase) {
+                    cell.classList.add('word-mode');
+                }
+                
+                if (i === selectedCell) {
+                    cell.classList.add('selected');
+                }
+                
+                cell.innerText = board[i];
+                cell.onclick = () => handleCellClick(i);
+                boardEl.appendChild(cell);
+            }
         }
-
-        socket.on('startGame', data => {
-            statusEl.innerText = 'Game started!';
-            board = Array(9).fill('');
-            renderBoard();
-            myTurn = data.first_player === playerId;
-            turnEl.innerText = myTurn ? 'Your turn!' : 'Waiting for opponent...';
-            rematchBtn.style.display = 'none';
-            rematchBtn.disabled = false;
-            gameStarted = true;
+        
+        function handleCellClick(index) {
+            if (wordFillPhase) {
+                // Word fill mode
+                if (!myTurn) {
+                    alert("It's not your turn!");
+                    return;
+                }
+                if (board[index]) {
+                    alert('This cell already has a word!');
+                    return;
+                }
+                
+                selectedCell = index;
+                wordInputContainer.style.display = 'flex';
+                wordInput.focus();
+                renderBoard();
+            } else if (gameStarted) {
+                // Regular game mode
+                if (!myTurn) {
+                    alert("It's not your turn!");
+                    return;
+                }
+                if (board[index]) {
+                    alert('This cell is already taken!');
+                    return;
+                }
+                
+                socket.emit('makeMove', { gameId, position: index, playerId });
+            }
+        }
+        
+        function submitWord() {
+            const word = wordInput.value.trim();
+            if (!word) {
+                alert('Please enter a word');
+                return;
+            }
+            if (selectedCell === -1) {
+                alert('Please select a cell first');
+                return;
+            }
+            
+            socket.emit('placeWord', {
+                gameId,
+                position: selectedCell,
+                playerId,
+                word
+            });
+            
+            wordInput.value = '';
+            wordInputContainer.style.display = 'none';
+            selectedCell = -1;
+        }
+        
+        function rematch() {
+            rematchBtn.disabled = true;
+            statusEl.innerText = 'Waiting for opponent...';
+            socket.emit('rematchRequest', { gameId, playerId });
+        }
+        
+        // Socket event handlers
+        socket.on('gameCreated', (data) => {
+            console.log('Game created:', data);
+            statusEl.innerText = 'Waiting for opponent...';
         });
-
-        socket.on('moveMade', data => {
+        
+        socket.on('gameJoined', (data) => {
+            console.log('Game joined:', data);
+            statusEl.innerText = 'Waiting for opponent...';
+        });
+        
+        socket.on('startGame', (data) => {
+            console.log('Game started:', data);
+            board = Array(9).fill('');
+            wordFillPhase = false;
+            playerSymbols = {};
+            gameStarted = true;
+            
+            myTurn = (data.first_player === playerId);
+            statusEl.innerText = 'Game Started!';
+            turnEl.innerText = myTurn ? 'Your turn!' : 'Opponent\'s turn';
+            turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+            
+            renderBoard();
+            rematchBtn.style.display = 'none';
+        });
+        
+        socket.on('startWordFill', (data) => {
+            console.log('Word fill started:', data);
+            board = Array(9).fill('');
+            wordFillPhase = true;
+            wordFillProgress = 0;
+            playerSymbols = {};
+            gameStarted = true;
+            
+            // Determine turn
+            const currentPlayerIndex = wordFillSequence[0];
+            const firstPlayer = data.first_player;
+            const secondPlayer = data.players.find(p => p !== firstPlayer);
+            const currentPlayer = currentPlayerIndex === 0 ? firstPlayer : secondPlayer;
+            
+            myTurn = (currentPlayer === playerId);
+            
+            statusEl.innerText = 'Word Fill Phase';
+            turnEl.innerText = myTurn ? 'Your turn to place a word!' : 'Opponent is placing words...';
+            turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+            
+            wordFillStatus.innerText = `Tile 1 of 9 - Place your word`;
+            wordFillStatus.style.display = 'block';
+            
+            renderBoard();
+            rematchBtn.style.display = 'none';
+        });
+        
+        socket.on('wordPlaced', (data) => {
+            console.log('Word placed:', data);
+            board = data.result.board;
+            
+            // Track which player placed the word
+            const currentPlayerIndex = wordFillSequence[wordFillProgress];
+            playerSymbols[data.position] = currentPlayerIndex;
+            
+            renderBoard();
+            
+            if (data.next_player) {
+                myTurn = (data.next_player === playerId);
+                wordFillProgress++;
+                
+                turnEl.innerText = myTurn ? 'Your turn to place a word!' : 'Opponent is placing words...';
+                turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+                
+                if (wordFillProgress < 9) {
+                    wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 9 - Place your word`;
+                }
+            }
+        });
+        
+        socket.on('wordFillComplete', (data) => {
+            console.log('Word fill complete:', data);
+            wordFillPhase = false;
+            board = data.board;
+            
+            renderBoard();
+            
+            statusEl.innerText = 'Game starting...';
+            wordFillStatus.style.display = 'none';
+            wordInputContainer.style.display = 'none';
+            
+            setTimeout(() => {
+                myTurn = (data.first_player === playerId);
+                turnEl.innerText = myTurn ? 'Your turn!' : 'Opponent\'s turn';
+                turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+                statusEl.innerText = 'Game in progress';
+            }, 2000);
+        });
+        
+        socket.on('moveMade', (data) => {
+            console.log('Move made:', data);
             board = data.result.board;
             renderBoard();
+            
             if (data.next_player) {
-                myTurn = data.next_player === playerId;
-                turnEl.innerText = myTurn ? 'Your turn!' : 'Waiting for opponent...';
+                myTurn = (data.next_player === playerId);
+                turnEl.innerText = myTurn ? 'Your turn!' : 'Opponent\'s turn';
+                turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
             }
         });
-
-        socket.on('gameOver', data => {
+        
+        socket.on('gameOver', (data) => {
+            console.log('Game over:', data);
             gameStarted = false;
-            myTurn = false;
-
+            
             if (data.draw) {
-                statusEl.innerText = 'Draw';
-                turnEl.innerText = '';
-                rematchBtn.style.display = 'inline-block';
+                statusEl.innerText = 'Game Over - Draw!';
+            } else {
+                statusEl.innerText = `Game Over - Winner: ${data.winner}`;
             }
-            else if (data.forfeit) {
-                statusEl.innerText = `Winner: ${data.winner}`;
-                turnEl.innerText = 'Opponent disconnected — win by forfeit';
-                rematchBtn.style.display = 'none';
-                gameStarted = false;
-            }
-
-            else {
-                statusEl.innerText = `Winner: ${data.winner}`;
-                turnEl.innerText = '';
-                rematchBtn.style.display = 'inline-block';
-            }
-
-            rematchBtn.disabled = false;
-        });
-
-        socket.on('gameCreated', data => {
-            statusEl.innerText = `Game ${data.gameId} created. Waiting for opponent...`;
-            boardEl.style.display = 'none';
-        });
-
-        socket.on('gameJoined', data => {
-            statusEl.innerText = `Joined game ${data.gameId}. Waiting for opponent...`;
-            boardEl.style.display = 'none';
-        });
-
-        socket.on('error', data => {
-            alert(data.message || 'An error occurred');
-            doImmediateClose();
-        });
-
-        function resetUIForNewGame() {
-            board = Array(9).fill('');
-            boardEl.innerHTML = '';
-            boardEl.style.display = 'none';
-
-            statusEl.innerText = 'Waiting for opponent...';
+            
             turnEl.innerText = '';
-            rematchBtn.style.display = 'none';
-            rematchBtn.disabled = false;
-
-            leaveConfirm.style.display = 'none';
-
+            turnEl.className = '';
+            rematchBtn.style.display = 'block';
             myTurn = false;
-            gameStarted = false;
-        }
-
-
-
-
-        rematchBtn.onclick = () => {
-            rematchBtn.disabled = true;
-            statusEl.innerText = 'Waiting for opponent to accept rematch...';
-            socket.emit('rematchRequest', { gameId, playerId });
-        };
+            wordFillPhase = false;
+        });
+        
+        socket.on('error', (data) => {
+            alert('Error: ' + data.message);
+            forceClose();
+        });
+        
+        socket.on('rematchStatus', (data) => {
+            if (data.votes === 2) {
+                statusEl.innerText = 'Rematch accepted!';
+            }
+        });
     </script>
 </body>
-
 </html>
