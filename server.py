@@ -46,6 +46,8 @@ def join_game(data):
         join_room(game_id)
         sid = request.sid
         sessions[sid] = {'game_id': game_id, 'player_id': player_id}
+        print(f"✅ Player {player_id} (SID: {sid}) joined room {game_id}")
+        print(f"✅ Current sessions: {sessions}")
         emit('gameJoined', {'gameId': game_id, 'mode': game.mode})
         
         # Check if we now have 2 players
@@ -83,6 +85,7 @@ def place_word(data):
             emit('error', {'message': result['error']})
             return
         
+        # Emit to ALL players in the room
         socketio.emit('wordPlaced', {
             'position': position,
             'player': player_id,
@@ -94,6 +97,7 @@ def place_word(data):
         }, room=game_id)
         
         if result.get('wordfill_complete'):
+            print(f"Word fill complete for game {game_id}, emitting to all players")
             socketio.emit('wordFillComplete', {
                 'board': result['board'],
                 'first_player': result['next_player'],
@@ -107,19 +111,45 @@ def make_move(data):
     player_id = data['playerId']
     winner = data.get('winner')
     
+    print(f"🎯 makeMove received: game={game_id}, position={position}, player={player_id}, winner={winner}")
+    
     game = games.get(game_id)
-    if game:
-        result = game.make_move(player_id, position, winner=winner)
+    if not game:
+        emit('error', {'message': 'Game not found'})
+        return
         
-        if result.get('error'):
-            emit('error', {'message': result['error']})
-            return
+    result = game.make_move(player_id, position, winner=winner)
+    
+    if result.get('error'):
+        emit('error', {'message': result['error']})
+        return
+    
+    # CASE 1: This is a challenge notification (no winner yet)
+    if winner is None and result.get('challenge'):
+        print(f"🔥 Emitting challenge notification to all players")
         
+        # Get the word being challenged
+        challenged_word = result['challenge']['word']
+        
+        # Emit challenge notification to all players
+        socketio.emit('challengeNotification', {
+            'player_id': player_id,
+            'player_name': player_id,
+            'position': position,
+            'word': challenged_word
+        }, room=game_id)
+        
+    # CASE 2: This is a winner selection (actual move)
+    else:
+        print(f"🏆 Emitting move completion")
+        
+        # Determine next player
         next_player = None
         if game.phase == 'game' and len(game.players) == 2 and not result.get('winner') and not result.get('draw'):
             next_player = game.players[game.turn]
         
-        socketio.emit('moveMade', {
+        # Emit move completion to all players
+        socketio.emit('moveCompleted', {
             'position': position,
             'player': player_id,
             'winner': winner,
@@ -128,6 +158,7 @@ def make_move(data):
             'phase': game.phase
         }, room=game_id)
         
+        # Check for game over
         if result.get('winner'):
             socketio.emit('gameOver', {'winner': result['winner'], 'draw': False}, room=game_id)
         elif result.get('draw'):

@@ -106,14 +106,39 @@ class TicTacToe:
         if self.players[self.turn] != player_id:
             return {'error': 'Not your turn', 'winner': self.winner}
 
-        # Set the symbol based on player order, not turn
-        # Player 0 (first player) is always X, Player 1 (second player) is always O
+        # Get the word from word_board if in wordfill mode
+        selected_word = None
+        if self.mode == 'wordfill':
+            selected_word = self.word_board[position]
+            print(f"[DEBUG] Word at position {position}: {selected_word}")
+
+        # CASE 1: This is just a challenge notification (no winner yet)
+        if winner is None and self.mode == 'wordfill':
+            print(f"[DEBUG] Challenge started on position {position} with word: {selected_word}")
+            
+            # DON'T place a symbol or switch turns yet
+            # Just return challenge info
+            result = {
+                'board': self.board,  # Board unchanged
+                'winner': self.winner,
+                'draw': False,
+                'phase': self.phase,
+                'challenge': {
+                    'player_id': player_id,
+                    'position': position,
+                    'word': selected_word
+                }
+            }
+            print(f"[DEBUG] Returning challenge result")
+            return result
+
+        # CASE 2: This is an actual move with a winner
+        # Set the symbol based on winner
         if self.mode == 'wordfill' and winner is not None:
-            # Use the winner parameter (0 for Player 1, 1 for Player 2)
             self.board[position] = 'X' if winner == 0 else 'O'
-            print(f"[DEBUG] Center tile {position} set to {self.board[position]} by winner {winner}")
+            print(f"[DEBUG] Tile {position} set to {self.board[position]} by winner {winner}")
         else:
-            # In classic mode, player at index 0 is X, player at index 1 is O
+            # Classic mode
             player_index = 0 if self.players[0] == player_id else 1
             self.board[position] = 'X' if player_index == 0 else 'O'
             print(f"[DEBUG] Tile {position} set to {self.board[position]} by player {player_id} (index {player_index})")

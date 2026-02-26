@@ -436,6 +436,36 @@
             color: #555;
         }
 
+        /* Waiting Indicator */
+        #waitingIndicator {
+            display: none;
+            margin: 15px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 5px;
+            color: #856404;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #856404;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
         /* GitHub Footer */
         .github-footer {
             position: fixed;
@@ -463,12 +493,6 @@
 
         .github-link:hover {
             transform: scale(1.05);
-        }
-
-        .github-stats {
-            margin-left: 20px;
-            font-size: 14px;
-            opacity: 0.9;
         }
     </style>
 </head>
@@ -503,6 +527,14 @@
         <div class="word-input-container" id="wordInputContainer" style="display: none;">
             <input type="text" id="wordInput" placeholder="Enter a word" maxlength="20">
             <button id="submitWordBtn" onclick="submitWord()">Place Word</button>
+        </div>
+
+        <!-- Waiting Indicator -->
+        <div id="waitingIndicator">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <div class="spinner"></div>
+                <span id="waitingMessage">Opponent is challenging a tile...</span>
+            </div>
         </div>
 
         <div id="board"></div>
@@ -650,15 +682,16 @@
             </svg>
             <span>View on GitHub</span>
         </a>
-        <span class="github-stats">
-            <span>⭐ Star</span>
-            <span>🍴 Fork</span>
-        </span>
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
         const socket = io();
+
+        // Debug logging
+        socket.onAny((event, ...args) => {
+            console.log(`📡 [${new Date().toLocaleTimeString()}] Socket Event: ${event}`, args);
+        });
 
         let gameId = '';
         let playerId = '';
@@ -677,6 +710,9 @@
         let firstPlayer = '';
         let rematchVoted = false;
         let gameMode = 'classic';
+        let challengeInProgress = false;
+        let challengedPosition = -1;
+        let challengedWord = '';
 
         const modal = document.getElementById('gameModal');
         const boardEl = document.getElementById('board');
@@ -718,7 +754,6 @@
             modal.style.display = 'block';
             statusEl.innerText = 'Creating game...';
 
-            // Only emit createGame - don't try to join yet
             socket.emit('createGame', { gameId, mode: gameMode });
         }
 
@@ -804,26 +839,22 @@
 
                 document.getElementById('confirmChallengeBtn').onclick = () => {
                     challengeModal.style.display = 'none';
-                    pendingWinnerCell = pendingChallengeCell;
-
-                    // Update winner modal with player names
-                    const winnerModal = document.getElementById('winnerModal');
-                    const player1Btn = winnerModal.querySelector('.player1-btn');
-                    const player2Btn = winnerModal.querySelector('.player2-btn');
-
-                    if (players.length >= 2) {
-                        player1Btn.innerHTML = `${players[0]} wins!`;
-                        player2Btn.innerHTML = `${players[1]} wins!`;
-                    }
-
-                    winnerModal.style.display = 'flex';
-                    pendingChallengeCell = -1;
+                    
+                    // Send challenge to server
+                    handleChallengeConfirmation(pendingChallengeCell);
                 };
 
                 document.getElementById('cancelChallengeBtn').onclick = () => {
                     challengeModal.style.display = 'none';
                     pendingChallengeCell = -1;
                 };
+            }
+
+            // Show what word is being challenged
+            const word = board[pendingChallengeCell] || wordStorage[pendingChallengeCell] || 'RPS';
+            const challengeTitle = challengeModal.querySelector('h3');
+            if (challengeTitle) {
+                challengeTitle.innerHTML = `Challenge "${word}"?`;
             }
 
             challengeModal.style.display = 'flex';
@@ -836,18 +867,45 @@
             }
         }
 
+        function handleChallengeConfirmation(position) {
+            const word = board[position] || wordStorage[position] || 'RPS';
+            
+            // Send challenge notification to server
+            socket.emit('makeMove', {
+                gameId,
+                position: position,
+                playerId,
+                winner: null  // No winner yet, just challenging
+            });
+            
+            // Show waiting state for challenger
+            challengeInProgress = true;
+            gameStarted = false;
+            
+            const turnIndicator = document.getElementById('turnIndicator');
+            turnIndicator.innerHTML = `⏳ Sending challenge for "${word}"...`;
+            turnIndicator.className = 'opponent-turn';
+            
+            const waitingIndicator = document.getElementById('waitingIndicator');
+            const waitingMessage = document.getElementById('waitingMessage');
+            waitingMessage.innerHTML = `⏳ Sending challenge to opponent...`;
+            waitingIndicator.style.display = 'block';
+            
+            pendingChallengeCell = -1;
+        }
+
         function renderBoard() {
             boardEl.innerHTML = '';
             for (let i = 0; i < 9; i++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
 
-                // CLASSIC MODE - Color based on symbol, not who placed it
+                // CLASSIC MODE - Color based on symbol
                 if (gameMode === 'classic') {
                     if (board[i] === 'X') {
-                        cell.classList.add('player1'); // X is always player1 (red)
+                        cell.classList.add('player1');
                     } else if (board[i] === 'O') {
-                        cell.classList.add('player2'); // O is always player2 (blue)
+                        cell.classList.add('player2');
                     }
                 }
                 // CRAZY MODE - Use playerSymbols for coloring
@@ -870,7 +928,7 @@
                     if (board[i] === 'X' || board[i] === 'O') {
                         cell.innerHTML = `<span class="symbol-text">${board[i]}</span>`;
                     } else {
-                        cell.innerHTML = ''; // Empty cell
+                        cell.innerHTML = '';
                     }
                 }
                 // CRAZY MODE - Complex display with words and RPS
@@ -917,6 +975,11 @@
                 return;
             }
 
+            if (challengeInProgress) {
+                alert('Waiting for opponent to complete their challenge...');
+                return;
+            }
+
             if (gameMode === 'wordfill' && wordFillPhase) {
                 if (!myTurn) {
                     alert("It's not your turn!");
@@ -948,7 +1011,6 @@
                         return;
                     }
 
-                    // Make move in classic mode
                     socket.emit('makeMove', {
                         gameId,
                         position: index,
@@ -963,13 +1025,9 @@
                     return;
                 }
 
-                if (index === 4) {
-                    pendingChallengeCell = index;
-                    showChallengeModal();
-                    return;
-                }
-
-                if (!board[index] && !wordStorage[index]) {
+                // Check if there's a word to challenge
+                const wordToChallenge = wordStorage[index] || board[index];
+                if (!wordToChallenge && index !== 4) {
                     alert('No word in this cell to challenge!');
                     return;
                 }
@@ -1008,24 +1066,26 @@
                 word
             });
 
-            wordFillProgress++;
-            if (wordFillProgress < 8) {
-                wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your word`;
-            }
-
             renderBoard();
         }
 
         function selectWinner(playerNum) {
-            if (pendingWinnerCell === -1) return;
+            if (pendingWinnerCell === -1) {
+                console.log('No pending winner cell');
+                return;
+            }
 
             if (!myTurn) {
                 alert("It's not your turn anymore!");
                 winnerModal.style.display = 'none';
                 pendingWinnerCell = -1;
+                challengeInProgress = false;
                 return;
             }
 
+            console.log(`Sending winner selection: position=${pendingWinnerCell}, winner=${playerNum}`);
+
+            // Send the move with winner
             socket.emit('makeMove', {
                 gameId,
                 position: pendingWinnerCell,
@@ -1033,13 +1093,39 @@
                 winner: playerNum
             });
 
+            // Hide winner modal immediately
             winnerModal.style.display = 'none';
-            pendingWinnerCell = -1;
+            
+            // Show waiting message for the challenger
+            const waitingIndicator = document.getElementById('waitingIndicator');
+            const waitingMessage = document.getElementById('waitingMessage');
+            waitingMessage.innerHTML = `⏳ Waiting for opponent to see your move...`;
+            waitingIndicator.style.display = 'block';
+            
+            const turnIndicator = document.getElementById('turnIndicator');
+            turnIndicator.innerHTML = `⏳ Waiting for opponent...`;
+            turnIndicator.className = 'opponent-turn';
+            
+            // Don't reset pendingWinnerCell yet - wait for moveCompleted
+            // Don't reset challengeInProgress yet - wait for moveCompleted
         }
 
         function cancelWinnerSelection() {
             winnerModal.style.display = 'none';
             pendingWinnerCell = -1;
+            challengeInProgress = false;
+            
+            // Re-enable game
+            gameStarted = true;
+            
+            const turnIndicator = document.getElementById('turnIndicator');
+            if (myTurn) {
+                turnIndicator.innerHTML = `✅ Your turn to challenge!`;
+                turnIndicator.className = 'your-turn';
+            } else {
+                turnIndicator.innerHTML = `⏳ Waiting for opponent...`;
+                turnIndicator.className = 'opponent-turn';
+            }
         }
 
         function rematch() {
@@ -1053,25 +1139,27 @@
             socket.emit('rematchRequest', { gameId, playerId });
         }
 
+        // Socket event handlers
         socket.on('gameCreated', (data) => {
-            statusEl.innerText = 'Waiting for opponent...';
+            console.log('✅ Game created:', data);
+            statusEl.innerText = 'Game created! Joining...';
             gameMode = data.mode;
-            
-            // Now that the game is created, join it
+
             socket.emit('joinGame', { gameId, playerId, mode: gameMode });
         });
 
         socket.on('gameJoined', (data) => {
+            console.log('✅ Game joined:', data);
             statusEl.innerText = 'Waiting for opponent...';
             gameMode = data.mode;
         });
 
         socket.on('startWordFill', (data) => {
+            console.log('🎮 WORD FILL STARTED:', data);
             players = data.players;
             firstPlayer = data.first_player;
             gameMode = 'wordfill';
 
-            // Update player names display
             document.getElementById('playerNames').innerHTML = `<span style="color: #ff0000;">${players[0]}</span> vs <span style="color: #0066ff;">${players[1]}</span>`;
 
             wordFillPhase = true;
@@ -1083,6 +1171,7 @@
             wordFillProgress = 0;
             selectedCell = -1;
             rematchVoted = false;
+            challengeInProgress = false;
 
             myTurn = (firstPlayer === playerId);
 
@@ -1101,16 +1190,14 @@
         });
 
         socket.on('startGame', (data) => {
-            console.log('startGame received:', data);
+            console.log('🎮 CLASSIC GAME STARTED:', data);
             players = data.players;
             firstPlayer = data.first_player;
             gameMode = 'classic';
 
-            // First player (players[0]) is always X (red), second player (players[1]) is always O (blue)
             const player1Name = players[0];
             const player2Name = players[1];
 
-            // Update player names display with correct colors
             document.getElementById('playerNames').innerHTML =
                 `<span style="color: #ff0000;">${player1Name} (X)</span> vs <span style="color: #0066ff;">${player2Name} (O)</span>`;
 
@@ -1121,31 +1208,25 @@
             wordStorage = {};
             selectedCell = -1;
             rematchVoted = false;
+            challengeInProgress = false;
 
             myTurn = (firstPlayer === playerId);
 
             statusEl.innerText = 'Game Started';
 
-            // Update turn indicator with correct colors based on player identity
             const turnIndicator = document.getElementById('turnIndicator');
             if (myTurn) {
-                // Current player's turn
                 if (playerId === players[0]) {
-                    // Current player is Player 1 (X - red)
                     turnIndicator.innerHTML = `✅ Your turn <span style="color: #ff0000;">${playerId} (X)</span>`;
                 } else {
-                    // Current player is Player 2 (O - blue)
                     turnIndicator.innerHTML = `✅ Your turn <span style="color: #0066ff;">${playerId} (O)</span>`;
                 }
                 turnIndicator.className = 'your-turn';
             } else {
-                // Opponent's turn
                 const opponent = players.find(p => p !== playerId);
                 if (opponent === players[0]) {
-                    // Opponent is Player 1 (X - red)
                     turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #ff0000;">${opponent} (X)</span>`;
                 } else {
-                    // Opponent is Player 2 (O - blue)
                     turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #0066ff;">${opponent} (O)</span>`;
                 }
                 turnIndicator.className = 'opponent-turn';
@@ -1158,7 +1239,138 @@
             rematchBtn.style.display = 'none';
         });
 
+        // Challenge notification event
+        socket.on('challengeNotification', (data) => {
+            console.log('🔥 CHALLENGE NOTIFICATION RECEIVED:', data);
+            
+            const word = data.word || 'a tile';
+            const playerName = data.player_name || data.player_id || 'Opponent';
+            
+            if (data.player_id === playerId) {
+                // This is the challenger - show winner selection modal
+                console.log('🔴 Challenger - showing winner selection');
+                
+                // Store the challenged position
+                pendingWinnerCell = data.position;
+                challengeInProgress = true;
+                
+                // Update winner modal with player names
+                const winnerModal = document.getElementById('winnerModal');
+                const player1Btn = winnerModal.querySelector('.player1-btn');
+                const player2Btn = winnerModal.querySelector('.player2-btn');
+                
+                if (players.length >= 2) {
+                    player1Btn.innerHTML = `${players[0]} wins!`;
+                    player2Btn.innerHTML = `${players[1]} wins!`;
+                }
+                
+                // Show winner modal
+                winnerModal.style.display = 'flex';
+                
+                // Update UI
+                const turnIndicator = document.getElementById('turnIndicator');
+                turnIndicator.innerHTML = `✅ You picked "${word}" - choose the winner!`;
+                turnIndicator.className = 'your-turn';
+                
+                // Hide waiting indicator if it was showing
+                document.getElementById('waitingIndicator').style.display = 'none';
+                
+                // Disable board clicks
+                gameStarted = false;
+                
+            } else {
+                // This is the opponent - show waiting message
+                console.log('🔵 Opponent - showing waiting message');
+                
+                challengeInProgress = true;
+                
+                // Show waiting indicator with custom message
+                const waitingIndicator = document.getElementById('waitingIndicator');
+                const waitingMessage = document.getElementById('waitingMessage');
+                waitingMessage.innerHTML = `⏳ ${playerName} picked "${word}" to challenge. Waiting for them to choose winner...`;
+                waitingIndicator.style.display = 'block';
+                
+                // Update turn indicator
+                const turnIndicator = document.getElementById('turnIndicator');
+                turnIndicator.innerHTML = `⏳ ${playerName} is challenging "${word}"...`;
+                turnIndicator.className = 'opponent-turn';
+                
+                // Update status
+                statusEl.innerText = `${playerName} is making a challenge...`;
+                
+                // Disable board clicks
+                gameStarted = false;
+            }
+        });
+
+        // Move completed event
+        socket.on('moveCompleted', (data) => {
+            console.log('🏆 MOVE COMPLETED:', data);
+            
+            // Update board
+            board = data.result.board;
+            board[4] = board[4] || 'RPS';
+            
+            if (data.winner !== undefined) {
+                playerSymbols[data.position] = data.winner;
+            }
+            
+            renderBoard();
+            
+            // Hide waiting indicator
+            document.getElementById('waitingIndicator').style.display = 'none';
+            
+            // Reset challenge state
+            challengeInProgress = false;
+            pendingWinnerCell = -1;
+            
+            // Hide winner modal if it was showing
+            document.getElementById('winnerModal').style.display = 'none';
+            
+            // Update turn for next player
+            if (data.next_player) {
+                myTurn = (data.next_player === playerId);
+                
+                const turnIndicator = document.getElementById('turnIndicator');
+                if (myTurn) {
+                    if (playerId === players[0]) {
+                        turnIndicator.innerHTML = `✅ Your turn <span style="color: #ff0000;">${playerId} (X)</span>`;
+                    } else {
+                        turnIndicator.innerHTML = `✅ Your turn <span style="color: #0066ff;">${playerId} (O)</span>`;
+                    }
+                    turnIndicator.className = 'your-turn';
+                } else {
+                    const opponent = players.find(p => p !== playerId);
+                    if (opponent === players[0]) {
+                        turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #ff0000;">${opponent} (X)</span>`;
+                    } else {
+                        turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #0066ff;">${opponent} (O)</span>`;
+                    }
+                    turnIndicator.className = 'opponent-turn';
+                }
+                
+                statusEl.innerText = myTurn ? 'Your turn to challenge!' : 'Waiting for opponent...';
+                gameStarted = true;
+            }
+            
+            // Check if game is over
+            if (data.result.winner || data.result.draw) {
+                gameStarted = false;
+                document.getElementById('waitingIndicator').style.display = 'none';
+                const turnIndicator = document.getElementById('turnIndicator');
+                turnIndicator.innerHTML = '';
+                turnIndicator.className = '';
+                if (data.result.draw) {
+                    statusEl.innerText = 'Game Over - Draw!';
+                } else {
+                    statusEl.innerText = `Game Over - Winner: ${data.result.winner}`;
+                }
+                rematchBtn.style.display = 'block';
+            }
+        });
+
         socket.on('wordPlaced', (data) => {
+            console.log('Word placed:', data);
             board = data.result.board;
             board[4] = 'RPS';
 
@@ -1172,15 +1384,21 @@
                 board[data.position] = data.word;
             }
 
+            if (data.result && data.result.current_wordfill_index !== undefined) {
+                wordFillProgress = data.result.current_wordfill_index;
+            }
+
             if (data.next_player) {
                 myTurn = (data.next_player === playerId);
-                wordFillProgress = data.result.current_wordfill_index || wordFillProgress + 1;
 
                 turnEl.innerText = myTurn ? 'Your turn to place a word!' : 'Opponent is placing words...';
                 turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
 
                 if (wordFillProgress < 8) {
                     wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your word`;
+                    wordFillStatus.style.display = 'block';
+                } else {
+                    wordFillStatus.style.display = 'none';
                 }
             }
 
@@ -1188,11 +1406,11 @@
         });
 
         socket.on('wordFillComplete', (data) => {
+            console.log('🎯 WORD FILL COMPLETE RECEIVED:', data);
             wordFillPhase = false;
             board = data.board;
             board[4] = 'RPS';
 
-            // Update player names display if not already set
             if (players.length >= 2) {
                 document.getElementById('playerNames').innerHTML = `<span style="color: #ff0000;">${players[0]}</span> vs <span style="color: #0066ff;">${players[1]}</span>`;
             }
@@ -1209,63 +1427,44 @@
 
             selectedCell = -1;
             wordInputContainer.style.display = 'none';
+            wordFillStatus.style.display = 'none';
             renderBoard();
 
             statusEl.innerText = 'Game starting...';
-            wordFillStatus.style.display = 'none';
 
-            setTimeout(() => {
+            if (window.wordFillTimeout) {
+                clearTimeout(window.wordFillTimeout);
+            }
+
+            window.wordFillTimeout = setTimeout(() => {
+                console.log('Starting challenge phase for player:', playerId);
                 myTurn = (data.first_player === playerId);
                 turnEl.innerText = myTurn ? 'Your turn! Click a square to challenge it' : 'Opponent\'s turn to challenge';
                 turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
-                statusEl.innerText = 'Challenge tiles and choose the winner';
-                gameStarted = true;
-            }, 2000);
-        });
 
-        socket.on('moveMade', (data) => {
-            console.log('Move made - updating board:', data);
-            board = data.result.board;
-            board[4] = board[4] || 'RPS';
-
-            if (data.winner !== undefined) {
-                playerSymbols[data.position] = data.winner;
-            }
-
-            renderBoard();
-
-            if (data.next_player) {
-                myTurn = (data.next_player === playerId);
-
-                // Update turn indicator with correct colors based on player identity
                 const turnIndicator = document.getElementById('turnIndicator');
                 if (myTurn) {
-                    // Current player's turn
-                    if (playerId === players[0]) {
-                        // Current player is Player 1 (X - red)
-                        turnIndicator.innerHTML = `✅ Your turn <span style="color: #ff0000;">${playerId} (X)</span>`;
-                    } else {
-                        // Current player is Player 2 (O - blue)
-                        turnIndicator.innerHTML = `✅ Your turn <span style="color: #0066ff;">${playerId} (O)</span>`;
-                    }
+                    turnIndicator.innerHTML = `✅ Your turn to challenge!`;
                     turnIndicator.className = 'your-turn';
                 } else {
-                    // Opponent's turn
                     const opponent = players.find(p => p !== playerId);
-                    if (opponent === players[0]) {
-                        // Opponent is Player 1 (X - red)
-                        turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #ff0000;">${opponent} (X)</span>`;
-                    } else {
-                        // Opponent is Player 2 (O - blue)
-                        turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #0066ff;">${opponent} (O)</span>`;
-                    }
+                    turnIndicator.innerHTML = `⏳ Waiting for ${opponent} to challenge...`;
                     turnIndicator.className = 'opponent-turn';
                 }
-            }
+
+                statusEl.innerText = 'Challenge tiles and choose the winner';
+                gameStarted = true;
+                challengeInProgress = false;
+            }, 2000);
         });
 
         socket.on('gameOver', (data) => {
             gameStarted = false;
+            challengeInProgress = false;
+            document.getElementById('waitingIndicator').style.display = 'none';
+            const turnIndicator = document.getElementById('turnIndicator');
+            turnIndicator.innerHTML = '';
+            turnIndicator.className = '';
 
             if (data.draw) {
                 statusEl.innerText = 'Game Over - Draw!';
@@ -1285,6 +1484,7 @@
         });
 
         socket.on('error', (data) => {
+            console.error('❌ Error:', data);
             alert('Error: ' + data.message);
         });
 
