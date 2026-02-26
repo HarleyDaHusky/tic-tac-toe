@@ -92,7 +92,6 @@ class TicTacToe:
         if position < 0 or position >= len(self.board):
             return {'error': f'Invalid position {position}', 'winner': self.winner}
 
-        # Center square (position 4) can be claimed in game mode even though it has "RPS"
         if self.winner:
             return {'error': 'Game already over', 'winner': self.winner}
 
@@ -107,14 +106,37 @@ class TicTacToe:
         if self.players[self.turn] != player_id:
             return {'error': 'Not your turn', 'winner': self.winner}
 
-        # Set the symbol based on winner or turn
+        # Get the word from word_board if in wordfill mode
+        selected_word = None
+        if self.mode == 'wordfill':
+            selected_word = self.word_board[position]
+
+        # CASE 1: This is just a challenge notification (no winner yet)
+        if winner is None and self.mode == 'wordfill':
+            
+            # DON'T place a symbol or switch turns yet
+            # Just return challenge info
+            result = {
+                'board': self.board,  # Board unchanged
+                'winner': self.winner,
+                'draw': False,
+                'phase': self.phase,
+                'challenge': {
+                    'player_id': player_id,
+                    'position': position,
+                    'word': selected_word
+                }
+            }
+            return result
+
+        # CASE 2: This is an actual move with a winner
+        # Set the symbol based on winner
         if self.mode == 'wordfill' and winner is not None:
-            # Use the winner parameter (0 for Player 1, 1 for Player 2)
             self.board[position] = 'X' if winner == 0 else 'O'
-            print(f"[DEBUG] Center tile {position} set to {self.board[position]} by winner {winner}")
         else:
-            self.board[position] = 'X' if self.turn == 0 else 'O'
-            print(f"[DEBUG] Tile {position} set to {self.board[position]} by turn {self.turn}")
+            # Classic mode
+            player_index = 0 if self.players[0] == player_id else 1
+            self.board[position] = 'X' if player_index == 0 else 'O'
 
         # Switch turns for the next player
         self.turn = 1 - self.turn
