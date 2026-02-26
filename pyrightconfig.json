@@ -1,0 +1,6 @@
+{
+  "typeCheckingMode": "basic",
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none"
+}

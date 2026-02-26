@@ -110,11 +110,9 @@ class TicTacToe:
         selected_word = None
         if self.mode == 'wordfill':
             selected_word = self.word_board[position]
-            print(f"[DEBUG] Word at position {position}: {selected_word}")
 
         # CASE 1: This is just a challenge notification (no winner yet)
         if winner is None and self.mode == 'wordfill':
-            print(f"[DEBUG] Challenge started on position {position} with word: {selected_word}")
             
             # DON'T place a symbol or switch turns yet
             # Just return challenge info
@@ -129,19 +127,16 @@ class TicTacToe:
                     'word': selected_word
                 }
             }
-            print(f"[DEBUG] Returning challenge result")
             return result
 
         # CASE 2: This is an actual move with a winner
         # Set the symbol based on winner
         if self.mode == 'wordfill' and winner is not None:
             self.board[position] = 'X' if winner == 0 else 'O'
-            print(f"[DEBUG] Tile {position} set to {self.board[position]} by winner {winner}")
         else:
             # Classic mode
             player_index = 0 if self.players[0] == player_id else 1
             self.board[position] = 'X' if player_index == 0 else 'O'
-            print(f"[DEBUG] Tile {position} set to {self.board[position]} by player {player_id} (index {player_index})")
 
         # Switch turns for the next player
         self.turn = 1 - self.turn

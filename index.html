@@ -3,13 +3,16 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Tic-Tac-Toe</title>
+    <title>Challenge Tic-Tac-Toe</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
             margin-bottom: 70px;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #FFD700 0%, #FFA500 40%, #FF6B35 70%, #FF4500 100%);
+            background-attachment: fixed;
         }
 
         #gameModal {
@@ -17,11 +20,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
+            background: linear-gradient(145deg, #fff9f5 0%, #fff5eb 50%, #ffeedd 100%);
             padding: 20px;
-            border: 2px solid #333;
+            border: 2px solid #e07c3a;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 30px rgba(224, 124, 58, 0.25), 0 4px 20px rgba(0, 0, 0, 0.15);
             display: none;
             z-index: 1000;
             min-width: 400px;
@@ -86,6 +89,7 @@
             line-height: 1.3;
             white-space: pre-line;
             text-align: center;
+            color: #000;
         }
 
         .cell.word-mode {
@@ -94,8 +98,8 @@
         }
 
         .cell.selected {
-            border: 4px solid #4CAF50 !important;
-            transform: scale(0.95);
+            border: 2px solid #4CAF50 !important;
+            box-shadow: 0 0 0 1px #4CAF50;
             background: #e8f5e8 !important;
         }
 
@@ -212,6 +216,69 @@
             color: white;
         }
 
+        /* RPS Modal */
+        #rpsModal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            z-index: 1500;
+        }
+
+        #rpsModal > div {
+            background: linear-gradient(145deg, #fffbf7 0%, #fff5eb 50%, #ffeedd 100%);
+            padding: 25px;
+            border-radius: 12px;
+            width: 320px;
+            text-align: center;
+            border: 2px solid #e07c3a;
+            box-shadow: 0 0 25px rgba(224, 124, 58, 0.2), 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        #rpsModal h3 {
+            color: #000;
+        }
+
+        #rpsModalMessage {
+            color: #000;
+        }
+
+        .rps-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .rps-btn {
+            padding: 20px 24px;
+            font-size: 24px;
+            color: #000;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .rps-btn:hover {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+            transform: scale(1.05);
+        }
+
+        .rps-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         #leaveConfirm,
         #winnerModal,
         #challengeModal {
@@ -220,7 +287,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.4);
             display: none;
             align-items: center;
             justify-content: center;
@@ -231,11 +298,13 @@
         #leaveConfirm>div,
         #winnerModal>div,
         #challengeModal>div {
-            background: white;
+            background: linear-gradient(145deg, #fffbf7 0%, #fff5eb 50%, #ffeedd 100%);
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             width: 300px;
             text-align: center;
+            border: 2px solid #e07c3a;
+            box-shadow: 0 0 25px rgba(224, 124, 58, 0.2), 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         .winner-buttons {
@@ -277,11 +346,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
+            background: linear-gradient(145deg, #fffbf7 0%, #fff5eb 50%, #ffeedd 100%);
             padding: 25px;
-            border: 2px solid #333;
+            border: 2px solid #e07c3a;
             border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 35px rgba(224, 124, 58, 0.25), 0 4px 25px rgba(0, 0, 0, 0.15);
             display: none;
             z-index: 2000;
             width: 700px;
@@ -296,7 +365,7 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #4CAF50;
+            border-bottom: 2px solid #e07c3a;
         }
 
         .info-header h2 {
@@ -318,17 +387,18 @@
 
         .info-section {
             margin-bottom: 25px;
-            background: #f9f9f9;
+            background: rgba(255, 250, 245, 0.8);
             padding: 15px;
             border-radius: 8px;
+            border: 1px solid rgba(224, 124, 58, 0.2);
         }
 
         .info-section h3 {
-            color: #4CAF50;
+            color: #c2410c;
             margin: 0 0 15px 0;
             font-size: 20px;
-            border-left: 4px solid #4CAF50;
-            padding-left: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e07c3a;
         }
 
         .info-section h4 {
@@ -339,10 +409,21 @@
 
         .info-section ul,
         .info-section ol {
-            padding-left: 25px;
+            padding-left: 20px;
             line-height: 1.8;
             color: #555;
             margin: 10px 0;
+            list-style: none;
+        }
+
+        #infoModal .info-section ul:not(.emoji-list) li::before {
+            content: "• ";
+            margin-right: 6px;
+            color: #555;
+        }
+
+        #infoModal .info-section ul ul:not(.emoji-list) li::before {
+            content: "◦ ";
         }
 
         .info-section li {
@@ -374,7 +455,7 @@
         }
 
         .mode-card.crazy {
-            border-top: 4px solid #4CAF50;
+            border-top: 4px solid #e07c3a;
         }
 
         .mode-card h5 {
@@ -472,7 +553,7 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #c2410c 0%, #9a3412 50%, #7c2d12 100%);
             color: white;
             padding: 12px 0;
             text-align: center;
@@ -498,7 +579,7 @@
 </head>
 
 <body>
-    <h1>Tic-Tac-Toe</h1>
+    <h1>Challenge Tic-Tac-Toe</h1>
 
     <div id="controls">
         <input id="gameId" placeholder="Enter Game ID">
@@ -525,8 +606,8 @@
         <div id="wordFillStatus" style="display: none;"></div>
 
         <div class="word-input-container" id="wordInputContainer" style="display: none;">
-            <input type="text" id="wordInput" placeholder="Enter a word" maxlength="20">
-            <button id="submitWordBtn" onclick="submitWord()">Place Word</button>
+            <input type="text" id="wordInput" placeholder="Enter a challenge" maxlength="20">
+            <button id="submitWordBtn" onclick="submitWord()">Place Challenge</button>
         </div>
 
         <!-- Waiting Indicator -->
@@ -560,12 +641,25 @@
                     style="background: #6c757d; width: 100%; margin-top: 10px;">Cancel</button>
             </div>
         </div>
+
+        <!-- RPS Modal (center tile only in Crazy mode) -->
+        <div id="rpsModal">
+            <div>
+                <h3>✂️ Rock Paper Scissors!</h3>
+                <p id="rpsModalMessage" style="margin: 10px 0;">Choose your move:</p>
+                <div class="rps-buttons">
+                    <button class="rps-btn" id="rpsRock" onclick="submitRpsChoice('rock')">🪨 Rock</button>
+                    <button class="rps-btn" id="rpsPaper" onclick="submitRpsChoice('paper')">📄 Paper</button>
+                    <button class="rps-btn" id="rpsScissors" onclick="submitRpsChoice('scissors')">✂️ Scissors</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Info Modal -->
     <div id="infoModal">
         <div class="info-header">
-            <h2>🎮 How to Play Tic-Tac-Toe</h2>
+            <h2>🎮 How to Play Challenge Tic-Tac-Toe</h2>
             <span class="close-info" onclick="closeInfoModal()">✖</span>
         </div>
 
@@ -604,7 +698,7 @@
             <div class="mode-comparison">
                 <div class="mode-card classic">
                     <h5>🎲 Classic Mode</h5>
-                    <p><span class="highlight">Traditional Tic-Tac-Toe</span></p>
+                    <p><span class="highlight">Traditional Challenge Tic-Tac-Toe</span></p>
                     <ul class="emoji-list">
                         <li><span>❌</span> Player 1 is X</li>
                         <li><span>⭕</span> Player 2 is O</li>
@@ -614,9 +708,9 @@
                 </div>
                 <div class="mode-card crazy">
                     <h5>🤪 Crazy Mode</h5>
-                    <p><span class="highlight">Word-Fill Challenge</span></p>
+                    <p><span class="highlight">Challenge-Fill Mode</span></p>
                     <ul class="emoji-list">
-                        <li><span>📝</span> Phase 1: Fill 8 squares with words</li>
+                        <li><span>📝</span> Phase 1: Fill 8 squares with challenges</li>
                         <li><span>⚔️</span> Phase 2: Challenge squares</li>
                         <li><span>✂️</span> Center = Rock Paper Scissors</li>
                         <li><span>🎯</span> Winner of challenge claims square</li>
@@ -632,10 +726,10 @@
                     diagonally)</li>
                 <li><strong>Crazy Mode:</strong>
                     <ul style="margin-top: 5px;">
-                        <li>First, fill the 8 outer squares with words (center is RPS)</li>
+                        <li>First, fill the 8 outer squares with challenges (center is RPS)</li>
                         <li>Then challenge squares by clicking them</li>
-                        <li>When challenging, you choose who wins that square</li>
-                        <li>The winner gets their symbol (X/O) on that square</li>
+                        <li>Challenge tiles: challenger chooses who wins that square</li>
+                        <li>Center tile: play Rock Paper Scissors — both players pick, winner claims the square</li>
                         <li>First to get three symbols in a row wins!</li>
                     </ul>
                 </li>
@@ -649,8 +743,8 @@
                     words in Crazy)</li>
                 <li><span style="color: #0066ff; font-weight: bold;">🔵 Player 2:</span> Blue squares (O in Classic,
                     words in Crazy)</li>
-                <li><span style="background: #e3f2fd; padding: 2px 6px; border-radius: 4px;">📘 Word Mode:</span> Light
-                    blue cells during word fill</li>
+                <li><span style="background: #e3f2fd; padding: 2px 6px; border-radius: 4px;">📘 Challenge Mode:</span> Light
+                    blue cells during challenge fill</li>
                 <li><span
                         style="background: #e8f5e8; padding: 2px 6px; border-radius: 4px; border: 2px solid #4CAF50;">✅
                         Selected:</span> Green border shows selected cell</li>
@@ -687,11 +781,6 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
         const socket = io();
-
-        // Debug logging
-        socket.onAny((event, ...args) => {
-            console.log(`📡 [${new Date().toLocaleTimeString()}] Socket Event: ${event}`, args);
-        });
 
         let gameId = '';
         let playerId = '';
@@ -785,6 +874,7 @@
             modal.style.display = 'none';
             leaveConfirm.style.display = 'none';
             winnerModal.style.display = 'none';
+            hideRpsModal();
             hideChallengeModal();
             if (gameId && playerId) {
                 socket.emit('leaveGame', { gameId, playerId });
@@ -865,6 +955,26 @@
             if (challengeModal) {
                 challengeModal.style.display = 'none';
             }
+        }
+
+        function showRpsModal(message) {
+            document.getElementById('rpsModalMessage').innerText = message || 'Choose your move:';
+            document.getElementById('rpsRock').disabled = false;
+            document.getElementById('rpsPaper').disabled = false;
+            document.getElementById('rpsScissors').disabled = false;
+            document.getElementById('rpsModal').style.display = 'flex';
+        }
+
+        function hideRpsModal() {
+            document.getElementById('rpsModal').style.display = 'none';
+        }
+
+        function submitRpsChoice(choice) {
+            document.getElementById('rpsRock').disabled = true;
+            document.getElementById('rpsPaper').disabled = true;
+            document.getElementById('rpsScissors').disabled = true;
+            socket.emit('rpsChoice', { gameId, playerId, choice });
+            document.getElementById('rpsModalMessage').innerText = 'Waiting for opponent...';
         }
 
         function handleChallengeConfirmation(position) {
@@ -990,7 +1100,7 @@
                     return;
                 }
                 if (board[index]) {
-                    alert('This cell already has a word!');
+                    alert('This cell already has a challenge!');
                     return;
                 }
 
@@ -1028,7 +1138,7 @@
                 // Check if there's a word to challenge
                 const wordToChallenge = wordStorage[index] || board[index];
                 if (!wordToChallenge && index !== 4) {
-                    alert('No word in this cell to challenge!');
+                    alert('No challenge in this cell!');
                     return;
                 }
 
@@ -1040,7 +1150,7 @@
         function submitWord() {
             const word = wordInput.value.trim();
             if (!word) {
-                alert('Please enter a word');
+                alert('Please enter a challenge');
                 return;
             }
             if (selectedCell === -1) {
@@ -1071,7 +1181,6 @@
 
         function selectWinner(playerNum) {
             if (pendingWinnerCell === -1) {
-                console.log('No pending winner cell');
                 return;
             }
 
@@ -1082,8 +1191,6 @@
                 challengeInProgress = false;
                 return;
             }
-
-            console.log(`Sending winner selection: position=${pendingWinnerCell}, winner=${playerNum}`);
 
             // Send the move with winner
             socket.emit('makeMove', {
@@ -1141,7 +1248,6 @@
 
         // Socket event handlers
         socket.on('gameCreated', (data) => {
-            console.log('✅ Game created:', data);
             statusEl.innerText = 'Game created! Joining...';
             gameMode = data.mode;
 
@@ -1149,13 +1255,11 @@
         });
 
         socket.on('gameJoined', (data) => {
-            console.log('✅ Game joined:', data);
             statusEl.innerText = 'Waiting for opponent...';
             gameMode = data.mode;
         });
 
         socket.on('startWordFill', (data) => {
-            console.log('🎮 WORD FILL STARTED:', data);
             players = data.players;
             firstPlayer = data.first_player;
             gameMode = 'wordfill';
@@ -1175,11 +1279,11 @@
 
             myTurn = (firstPlayer === playerId);
 
-            statusEl.innerText = 'Word Fill Phase';
-            turnEl.innerText = myTurn ? 'Your turn to place a word!' : 'Opponent is placing words...';
+            statusEl.innerText = 'Challenge Fill Phase';
+            turnEl.innerText = myTurn ? 'Your turn to place a challenge!' : 'Opponent is placing challenges...';
             turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
 
-            wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your word`;
+            wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your challenge`;
             wordFillStatus.style.display = 'block';
 
             renderBoard();
@@ -1190,7 +1294,6 @@
         });
 
         socket.on('startGame', (data) => {
-            console.log('🎮 CLASSIC GAME STARTED:', data);
             players = data.players;
             firstPlayer = data.first_player;
             gameMode = 'classic';
@@ -1239,16 +1342,31 @@
             rematchBtn.style.display = 'none';
         });
 
+        // RPS challenge (center tile only in Crazy mode)
+        socket.on('rpsChallenge', (data) => {
+            pendingWinnerCell = data.position;
+            challengeInProgress = true;
+            gameStarted = false;
+            document.getElementById('waitingIndicator').style.display = 'none';
+            const turnIndicator = document.getElementById('turnIndicator');
+            turnIndicator.innerHTML = '✂️ Rock Paper Scissors - choose your move!';
+            turnIndicator.className = 'your-turn';
+            statusEl.innerText = 'Center tile challenge - play Rock Paper Scissors!';
+            showRpsModal('Choose your move:');
+        });
+
+        socket.on('rpsTie', (data) => {
+            showRpsModal(data.message || "It's a tie! Pick again.");
+        });
+
         // Challenge notification event
         socket.on('challengeNotification', (data) => {
-            console.log('🔥 CHALLENGE NOTIFICATION RECEIVED:', data);
             
             const word = data.word || 'a tile';
             const playerName = data.player_name || data.player_id || 'Opponent';
             
             if (data.player_id === playerId) {
                 // This is the challenger - show winner selection modal
-                console.log('🔴 Challenger - showing winner selection');
                 
                 // Store the challenged position
                 pendingWinnerCell = data.position;
@@ -1280,7 +1398,6 @@
                 
             } else {
                 // This is the opponent - show waiting message
-                console.log('🔵 Opponent - showing waiting message');
                 
                 challengeInProgress = true;
                 
@@ -1305,7 +1422,6 @@
 
         // Move completed event
         socket.on('moveCompleted', (data) => {
-            console.log('🏆 MOVE COMPLETED:', data);
             
             // Update board
             board = data.result.board;
@@ -1324,8 +1440,9 @@
             challengeInProgress = false;
             pendingWinnerCell = -1;
             
-            // Hide winner modal if it was showing
+            // Hide winner modal and RPS modal if showing
             document.getElementById('winnerModal').style.display = 'none';
+            hideRpsModal();
             
             // Update turn for next player
             if (data.next_player) {
@@ -1370,7 +1487,6 @@
         });
 
         socket.on('wordPlaced', (data) => {
-            console.log('Word placed:', data);
             board = data.result.board;
             board[4] = 'RPS';
 
@@ -1391,11 +1507,11 @@
             if (data.next_player) {
                 myTurn = (data.next_player === playerId);
 
-                turnEl.innerText = myTurn ? 'Your turn to place a word!' : 'Opponent is placing words...';
+                turnEl.innerText = myTurn ? 'Your turn to place a challenge!' : 'Opponent is placing challenges...';
                 turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
 
                 if (wordFillProgress < 8) {
-                    wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your word`;
+                    wordFillStatus.innerText = `Tile ${wordFillProgress + 1} of 8 - Place your challenge`;
                     wordFillStatus.style.display = 'block';
                 } else {
                     wordFillStatus.style.display = 'none';
@@ -1406,7 +1522,6 @@
         });
 
         socket.on('wordFillComplete', (data) => {
-            console.log('🎯 WORD FILL COMPLETE RECEIVED:', data);
             wordFillPhase = false;
             board = data.board;
             board[4] = 'RPS';
@@ -1437,7 +1552,6 @@
             }
 
             window.wordFillTimeout = setTimeout(() => {
-                console.log('Starting challenge phase for player:', playerId);
                 myTurn = (data.first_player === playerId);
                 turnEl.innerText = myTurn ? 'Your turn! Click a square to challenge it' : 'Opponent\'s turn to challenge';
                 turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
@@ -1462,6 +1576,7 @@
             gameStarted = false;
             challengeInProgress = false;
             document.getElementById('waitingIndicator').style.display = 'none';
+            hideRpsModal();
             const turnIndicator = document.getElementById('turnIndicator');
             turnIndicator.innerHTML = '';
             turnIndicator.className = '';
