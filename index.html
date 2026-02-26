@@ -9,6 +9,7 @@
             font-family: Arial, sans-serif;
             text-align: center;
             padding: 20px;
+            margin-bottom: 70px;
         }
 
         #gameModal {
@@ -99,6 +100,11 @@
         }
 
         #controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
             margin: 20px;
         }
 
@@ -196,6 +202,11 @@
             margin-left: 10px;
         }
 
+        .mode-badge.classic {
+            background: #6c757d;
+            color: white;
+        }
+
         .mode-badge.wordfill {
             background: #4CAF50;
             color: white;
@@ -259,6 +270,206 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        /* Info Modal */
+        #infoModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border: 2px solid #333;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 2000;
+            width: 700px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .info-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .close-info {
+            cursor: pointer;
+            font-size: 28px;
+            color: #666;
+            transition: color 0.2s;
+        }
+
+        .close-info:hover {
+            color: #333;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .info-section h3 {
+            color: #4CAF50;
+            margin: 0 0 15px 0;
+            font-size: 20px;
+            border-left: 4px solid #4CAF50;
+            padding-left: 10px;
+        }
+
+        .info-section h4 {
+            color: #666;
+            margin: 15px 0 10px;
+            font-size: 18px;
+        }
+
+        .info-section ul,
+        .info-section ol {
+            padding-left: 25px;
+            line-height: 1.8;
+            color: #555;
+            margin: 10px 0;
+        }
+
+        .info-section li {
+            margin-bottom: 8px;
+        }
+
+        .info-section p {
+            line-height: 1.6;
+            color: #555;
+            margin: 10px 0;
+        }
+
+        .mode-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .mode-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .mode-card.classic {
+            border-top: 4px solid #6c757d;
+        }
+
+        .mode-card.crazy {
+            border-top: 4px solid #4CAF50;
+        }
+
+        .mode-card h5 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .mode-card p {
+            font-size: 14px;
+            color: #666;
+            margin: 8px 0;
+            padding: 0;
+        }
+
+        .emoji-list {
+            list-style: none;
+            padding-left: 0 !important;
+        }
+
+        .emoji-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .highlight {
+            background: #e8f5e8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .game-rules-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .rule-emoji {
+            font-size: 24px;
+        }
+
+        .rule-text {
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* GitHub Footer */
+        .github-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 0;
+            text-align: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 900;
+            font-family: Arial, sans-serif;
+        }
+
+        .github-link {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .github-link:hover {
+            transform: scale(1.05);
+        }
+
+        .github-stats {
+            margin-left: 20px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
     </style>
 </head>
 
@@ -269,10 +480,12 @@
         <input id="gameId" placeholder="Enter Game ID">
         <input id="playerId" placeholder="Enter Your Name">
         <select id="modeSelector">
-            <option value="wordfill" selected>Word Fill Mode</option>
+            <option value="classic" selected>Classic Mode</option>
+            <option value="wordfill">Crazy Mode</option>
         </select>
         <button onclick="createGame()">Create Game</button>
         <button onclick="joinGame()">Join Game</button>
+        <button onclick="openInfoModal()" style="background: #6c757d;">ℹ️ Info</button>
     </div>
 
     <div id="gameModal">
@@ -280,13 +493,11 @@
             <span id="closeBtn" onclick="closeModal()">✖</span>
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: center;">
-            <strong>Game</strong>
-            <span id="modeDisplay" class="mode-badge wordfill">Word Fill</span>
-        </div>
+        <div id="playerNames" style="font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333;"></div>
 
         <div id="status"></div>
         <div id="turn"></div>
+        <div id="turnIndicator" style="font-size: 16px; margin: 10px 0; padding: 8px; border-radius: 5px;"></div>
         <div id="wordFillStatus" style="display: none;"></div>
 
         <div class="word-input-container" id="wordInputContainer" style="display: none;">
@@ -310,13 +521,139 @@
             <div>
                 <h3>Who won this challenge?</h3>
                 <div class="winner-buttons">
-                    <button class="winner-btn player1-btn" onclick="selectWinner(0)">Player 1</button>
-                    <button class="winner-btn player2-btn" onclick="selectWinner(1)">Player 2</button>
+                    <button class="winner-btn player1-btn" onclick="selectWinner(0)">Player 1 wins!</button>
+                    <button class="winner-btn player2-btn" onclick="selectWinner(1)">Player 2 wins!</button>
                 </div>
                 <button onclick="cancelWinnerSelection()"
                     style="background: #6c757d; width: 100%; margin-top: 10px;">Cancel</button>
             </div>
         </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="infoModal">
+        <div class="info-header">
+            <h2>🎮 How to Play Tic-Tac-Toe</h2>
+            <span class="close-info" onclick="closeInfoModal()">✖</span>
+        </div>
+
+        <div class="info-section">
+            <h3>📋 Quick Start</h3>
+            <div class="game-rules-grid">
+                <div class="rule-item">
+                    <span class="rule-emoji">1️⃣</span>
+                    <span class="rule-text">Enter your name</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-emoji">2️⃣</span>
+                    <span class="rule-text">Create/join with Game ID</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-emoji">3️⃣</span>
+                    <span class="rule-text">Choose game mode</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-emoji">4️⃣</span>
+                    <span class="rule-text">Share ID with friend</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-emoji">5️⃣</span>
+                    <span class="rule-text">Wait for opponent</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-emoji">6️⃣</span>
+                    <span class="rule-text">Start playing!</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>🎯 Game Modes</h3>
+            <div class="mode-comparison">
+                <div class="mode-card classic">
+                    <h5>🎲 Classic Mode</h5>
+                    <p><span class="highlight">Traditional Tic-Tac-Toe</span></p>
+                    <ul class="emoji-list">
+                        <li><span>❌</span> Player 1 is X</li>
+                        <li><span>⭕</span> Player 2 is O</li>
+                        <li><span>🏆</span> First to 3 in a row wins</li>
+                        <li><span>🤝</span> Draw if board fills</li>
+                    </ul>
+                </div>
+                <div class="mode-card crazy">
+                    <h5>🤪 Crazy Mode</h5>
+                    <p><span class="highlight">Word-Fill Challenge</span></p>
+                    <ul class="emoji-list">
+                        <li><span>📝</span> Phase 1: Fill 8 squares with words</li>
+                        <li><span>⚔️</span> Phase 2: Challenge squares</li>
+                        <li><span>✂️</span> Center = Rock Paper Scissors</li>
+                        <li><span>🎯</span> Winner of challenge claims square</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>🎯 How to Win</h3>
+            <ul>
+                <li><strong>Classic Mode:</strong> Get three X's or O's in a row (horizontally, vertically, or
+                    diagonally)</li>
+                <li><strong>Crazy Mode:</strong>
+                    <ul style="margin-top: 5px;">
+                        <li>First, fill the 8 outer squares with words (center is RPS)</li>
+                        <li>Then challenge squares by clicking them</li>
+                        <li>When challenging, you choose who wins that square</li>
+                        <li>The winner gets their symbol (X/O) on that square</li>
+                        <li>First to get three symbols in a row wins!</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3>🎨 Visual Guide</h3>
+            <ul>
+                <li><span style="color: #ff0000; font-weight: bold;">🔴 Player 1:</span> Red squares (X in Classic,
+                    words in Crazy)</li>
+                <li><span style="color: #0066ff; font-weight: bold;">🔵 Player 2:</span> Blue squares (O in Classic,
+                    words in Crazy)</li>
+                <li><span style="background: #e3f2fd; padding: 2px 6px; border-radius: 4px;">📘 Word Mode:</span> Light
+                    blue cells during word fill</li>
+                <li><span
+                        style="background: #e8f5e8; padding: 2px 6px; border-radius: 4px; border: 2px solid #4CAF50;">✅
+                        Selected:</span> Green border shows selected cell</li>
+            </ul>
+        </div>
+
+        <div class="info-section">
+            <h3>⚡ Features</h3>
+            <ul>
+                <li><strong>🔄 Rematch:</strong> Click rematch after game ends</li>
+                <li><strong>👋 Leave Game:</strong> Close window or click X to forfeit</li>
+                <li><strong>📱 Responsive:</strong> Works on all devices</li>
+                <li><strong>⚡ Real-time:</strong> Instant moves with socket.io</li>
+                <li><strong>🏆 Forfeit Win:</strong> Win if opponent disconnects</li>
+            </ul>
+        </div>
+
+        <div class="info-section" style="text-align: center; background: #e8f5e8; border: 1px solid #4CAF50;">
+            <p style="margin: 0; color: #2e7d32;">✨ Have fun and may the best player win! ✨</p>
+        </div>
+    </div>
+
+    <!-- GitHub Footer -->
+    <div class="github-footer">
+        <a href="https://github.com/yourusername/your-repo-name" target="_blank" class="github-link">
+            <svg viewBox="0 0 24 24" width="20" height="20" style="fill: currentColor;">
+                <path
+                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            <span>View on GitHub</span>
+        </a>
+        <span class="github-stats">
+            <span>⭐ Star</span>
+            <span>🍴 Fork</span>
+        </span>
     </div>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -339,6 +676,7 @@
         let players = [];
         let firstPlayer = '';
         let rematchVoted = false;
+        let gameMode = 'classic';
 
         const modal = document.getElementById('gameModal');
         const boardEl = document.getElementById('board');
@@ -352,9 +690,25 @@
         const leaveConfirm = document.getElementById('leaveConfirm');
         const winnerModal = document.getElementById('winnerModal');
 
+        function openInfoModal() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        window.onclick = function (event) {
+            const infoModal = document.getElementById('infoModal');
+            if (event.target == infoModal) {
+                infoModal.style.display = 'none';
+            }
+        }
+
         function createGame() {
             gameId = document.getElementById('gameId').value.trim();
             playerId = document.getElementById('playerId').value.trim();
+            gameMode = document.getElementById('modeSelector').value;
 
             if (!gameId || !playerId) {
                 alert('Please enter both Game ID and Your Name');
@@ -364,13 +718,14 @@
             modal.style.display = 'block';
             statusEl.innerText = 'Creating game...';
 
-            socket.emit('createGame', { gameId, mode: 'wordfill' });
-            socket.emit('joinGame', { gameId, playerId });
+            // Only emit createGame - don't try to join yet
+            socket.emit('createGame', { gameId, mode: gameMode });
         }
 
         function joinGame() {
             gameId = document.getElementById('gameId').value.trim();
             playerId = document.getElementById('playerId').value.trim();
+            const selectedMode = document.getElementById('modeSelector').value;
 
             if (!gameId || !playerId) {
                 alert('Please enter both Game ID and Your Name');
@@ -380,7 +735,7 @@
             modal.style.display = 'block';
             statusEl.innerText = 'Joining game...';
 
-            socket.emit('joinGame', { gameId, playerId });
+            socket.emit('joinGame', { gameId, playerId, mode: selectedMode });
         }
 
         function closeModal() {
@@ -415,15 +770,14 @@
                 challengeModal = document.createElement('div');
                 challengeModal.id = 'challengeModal';
                 challengeModal.innerHTML = `
-                    <div>
-                        <h3>Challenge this tile?</h3>
-                        <p>Do you want to challenge for this tile?</p>
-                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                            <button id="confirmChallengeBtn" style="background: #4CAF50; padding: 10px 20px;">Yes, Challenge!</button>
-                            <button id="cancelChallengeBtn" style="background: #6c757d; padding: 10px 20px;">Cancel</button>
-                        </div>
-                    </div>
-                `;
+            <div>
+                <h3>Challenge this tile?</h3>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button id="confirmChallengeBtn" style="background: #4CAF50; padding: 10px 20px;">Yes, Challenge!</button>
+                    <button id="cancelChallengeBtn" style="background: #6c757d; padding: 10px 20px;">Cancel</button>
+                </div>
+            </div>
+        `;
 
                 document.getElementById('gameModal').appendChild(challengeModal);
 
@@ -451,6 +805,17 @@
                 document.getElementById('confirmChallengeBtn').onclick = () => {
                     challengeModal.style.display = 'none';
                     pendingWinnerCell = pendingChallengeCell;
+
+                    // Update winner modal with player names
+                    const winnerModal = document.getElementById('winnerModal');
+                    const player1Btn = winnerModal.querySelector('.player1-btn');
+                    const player2Btn = winnerModal.querySelector('.player2-btn');
+
+                    if (players.length >= 2) {
+                        player1Btn.innerHTML = `${players[0]} wins!`;
+                        player2Btn.innerHTML = `${players[1]} wins!`;
+                    }
+
                     winnerModal.style.display = 'flex';
                     pendingChallengeCell = -1;
                 };
@@ -460,6 +825,7 @@
                     pendingChallengeCell = -1;
                 };
             }
+
             challengeModal.style.display = 'flex';
         }
 
@@ -476,15 +842,22 @@
                 const cell = document.createElement('div');
                 cell.className = 'cell';
 
-                if (i === 4) {
-                    cell.classList.add('center');
+                // CLASSIC MODE - Color based on symbol, not who placed it
+                if (gameMode === 'classic') {
+                    if (board[i] === 'X') {
+                        cell.classList.add('player1'); // X is always player1 (red)
+                    } else if (board[i] === 'O') {
+                        cell.classList.add('player2'); // O is always player2 (blue)
+                    }
+                }
+                // CRAZY MODE - Use playerSymbols for coloring
+                else {
+                    if (playerSymbols[i] !== undefined) {
+                        cell.classList.add(`player${playerSymbols[i] + 1}`);
+                    }
                 }
 
-                if (playerSymbols[i] !== undefined) {
-                    cell.classList.add(`player${playerSymbols[i] + 1}`);
-                }
-
-                if (wordFillPhase) {
+                if (wordFillPhase && gameMode === 'wordfill') {
                     cell.classList.add('word-mode');
                 }
 
@@ -492,38 +865,44 @@
                     cell.classList.add('selected');
                 }
 
-                // Handle center square specially
-                if (i === 4) {
-                    const symbol = board[i] === 'X' || board[i] === 'O' ? board[i] : '';
-                    if (symbol) {
-                        // Center has been claimed - show X or O
-                        cell.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <span class="symbol-text">${symbol}</span>
-                        <span class="word-text">RPS</span>
-                    </div>
-                `;
-                    } else if (wordFillPhase) {
-                        // Word fill phase - show RPS text
-                        cell.innerHTML = '<div class="rps-text">Rock<br>Paper<br>Scissors</div>';
+                // CLASSIC MODE - Simple X/O display
+                if (gameMode === 'classic') {
+                    if (board[i] === 'X' || board[i] === 'O') {
+                        cell.innerHTML = `<span class="symbol-text">${board[i]}</span>`;
                     } else {
-                        // Game mode but not claimed yet - show RPS text
-                        cell.innerHTML = '<div class="rps-text">Rock<br>Paper<br>Scissors</div>';
+                        cell.innerHTML = ''; // Empty cell
                     }
-                } else {
-                    // Non-center squares
-                    const word = wordStorage[i] || board[i] || '';
-                    const symbol = board[i] === 'X' || board[i] === 'O' ? board[i] : '';
-
-                    if (symbol) {
-                        cell.innerHTML = `
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <span class="symbol-text">${symbol}</span>
-                        <span class="word-text">${word}</span>
-                    </div>
-                `;
+                }
+                // CRAZY MODE - Complex display with words and RPS
+                else {
+                    if (i === 4) {
+                        const symbol = board[i] === 'X' || board[i] === 'O' ? board[i] : '';
+                        if (symbol) {
+                            cell.innerHTML = `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <span class="symbol-text">${symbol}</span>
+                            <span class="word-text">RPS</span>
+                        </div>
+                    `;
+                        } else if (wordFillPhase) {
+                            cell.innerHTML = '<div class="rps-text">Rock<br>Paper<br>Scissors</div>';
+                        } else {
+                            cell.innerHTML = '<div class="rps-text">Rock<br>Paper<br>Scissors</div>';
+                        }
                     } else {
-                        cell.innerText = word;
+                        const word = wordStorage[i] || (board[i] !== 'X' && board[i] !== 'O' ? board[i] : '') || '';
+                        const symbol = board[i] === 'X' || board[i] === 'O' ? board[i] : '';
+
+                        if (symbol) {
+                            cell.innerHTML = `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <span class="symbol-text">${symbol}</span>
+                            <span class="word-text">${word}</span>
+                        </div>
+                    `;
+                        } else {
+                            cell.innerText = word;
+                        }
                     }
                 }
 
@@ -538,7 +917,7 @@
                 return;
             }
 
-            if (wordFillPhase) {
+            if (gameMode === 'wordfill' && wordFillPhase) {
                 if (!myTurn) {
                     alert("It's not your turn!");
                     return;
@@ -558,25 +937,38 @@
                 renderBoard();
             } else {
                 if (!myTurn) {
-                    alert("It's not your turn to challenge!");
+                    alert("It's not your turn!");
                     return;
                 }
 
-                // Check if cell already has X or O (taken)
+                // CLASSIC MODE - Simple move
+                if (gameMode === 'classic') {
+                    if (board[index] === 'X' || board[index] === 'O') {
+                        alert('This cell is already taken!');
+                        return;
+                    }
+
+                    // Make move in classic mode
+                    socket.emit('makeMove', {
+                        gameId,
+                        position: index,
+                        playerId
+                    });
+                    return;
+                }
+
+                // CRAZY MODE - Challenge mechanics
                 if (board[index] === 'X' || board[index] === 'O') {
                     alert('This cell is already taken!');
                     return;
                 }
 
-                // Special handling for center square (RPS)
                 if (index === 4) {
-                    // Center square can be challenged even though it has no word
                     pendingChallengeCell = index;
                     showChallengeModal();
                     return;
                 }
 
-                // For non-center squares, make sure there's a word to challenge
                 if (!board[index] && !wordStorage[index]) {
                     alert('No word in this cell to challenge!');
                     return;
@@ -663,15 +1055,24 @@
 
         socket.on('gameCreated', (data) => {
             statusEl.innerText = 'Waiting for opponent...';
+            gameMode = data.mode;
+            
+            // Now that the game is created, join it
+            socket.emit('joinGame', { gameId, playerId, mode: gameMode });
         });
 
         socket.on('gameJoined', (data) => {
             statusEl.innerText = 'Waiting for opponent...';
+            gameMode = data.mode;
         });
 
         socket.on('startWordFill', (data) => {
             players = data.players;
             firstPlayer = data.first_player;
+            gameMode = 'wordfill';
+
+            // Update player names display
+            document.getElementById('playerNames').innerHTML = `<span style="color: #ff0000;">${players[0]}</span> vs <span style="color: #0066ff;">${players[1]}</span>`;
 
             wordFillPhase = true;
             gameStarted = true;
@@ -697,6 +1098,64 @@
             rematchBtn.disabled = false;
             rematchBtn.classList.remove('pending');
             rematchBtn.innerText = 'Rematch';
+        });
+
+        socket.on('startGame', (data) => {
+            console.log('startGame received:', data);
+            players = data.players;
+            firstPlayer = data.first_player;
+            gameMode = 'classic';
+
+            // First player (players[0]) is always X (red), second player (players[1]) is always O (blue)
+            const player1Name = players[0];
+            const player2Name = players[1];
+
+            // Update player names display with correct colors
+            document.getElementById('playerNames').innerHTML =
+                `<span style="color: #ff0000;">${player1Name} (X)</span> vs <span style="color: #0066ff;">${player2Name} (O)</span>`;
+
+            wordFillPhase = false;
+            gameStarted = true;
+            board = Array(9).fill('');
+            playerSymbols = {};
+            wordStorage = {};
+            selectedCell = -1;
+            rematchVoted = false;
+
+            myTurn = (firstPlayer === playerId);
+
+            statusEl.innerText = 'Game Started';
+
+            // Update turn indicator with correct colors based on player identity
+            const turnIndicator = document.getElementById('turnIndicator');
+            if (myTurn) {
+                // Current player's turn
+                if (playerId === players[0]) {
+                    // Current player is Player 1 (X - red)
+                    turnIndicator.innerHTML = `✅ Your turn <span style="color: #ff0000;">${playerId} (X)</span>`;
+                } else {
+                    // Current player is Player 2 (O - blue)
+                    turnIndicator.innerHTML = `✅ Your turn <span style="color: #0066ff;">${playerId} (O)</span>`;
+                }
+                turnIndicator.className = 'your-turn';
+            } else {
+                // Opponent's turn
+                const opponent = players.find(p => p !== playerId);
+                if (opponent === players[0]) {
+                    // Opponent is Player 1 (X - red)
+                    turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #ff0000;">${opponent} (X)</span>`;
+                } else {
+                    // Opponent is Player 2 (O - blue)
+                    turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #0066ff;">${opponent} (O)</span>`;
+                }
+                turnIndicator.className = 'opponent-turn';
+            }
+
+            wordFillStatus.style.display = 'none';
+            wordInputContainer.style.display = 'none';
+
+            renderBoard();
+            rematchBtn.style.display = 'none';
         });
 
         socket.on('wordPlaced', (data) => {
@@ -733,6 +1192,11 @@
             board = data.board;
             board[4] = 'RPS';
 
+            // Update player names display if not already set
+            if (players.length >= 2) {
+                document.getElementById('playerNames').innerHTML = `<span style="color: #ff0000;">${players[0]}</span> vs <span style="color: #0066ff;">${players[1]}</span>`;
+            }
+
             for (let i = 0; i < 9; i++) {
                 if (i !== 4 && board[i] && !wordStorage[i]) {
                     wordStorage[i] = board[i];
@@ -762,19 +1226,41 @@
         socket.on('moveMade', (data) => {
             console.log('Move made - updating board:', data);
             board = data.result.board;
-            board[4] = board[4] || 'RPS'; // Keep RPS if center not claimed
+            board[4] = board[4] || 'RPS';
 
             if (data.winner !== undefined) {
                 playerSymbols[data.position] = data.winner;
-                console.log(`Cell ${data.position} now owned by player ${data.winner + 1} with symbol ${board[data.position]}`);
             }
 
             renderBoard();
 
             if (data.next_player) {
                 myTurn = (data.next_player === playerId);
-                turnEl.innerText = myTurn ? 'Your turn! Click a square to challenge it' : 'Opponent\'s turn to challenge';
-                turnEl.className = myTurn ? 'your-turn' : 'opponent-turn';
+
+                // Update turn indicator with correct colors based on player identity
+                const turnIndicator = document.getElementById('turnIndicator');
+                if (myTurn) {
+                    // Current player's turn
+                    if (playerId === players[0]) {
+                        // Current player is Player 1 (X - red)
+                        turnIndicator.innerHTML = `✅ Your turn <span style="color: #ff0000;">${playerId} (X)</span>`;
+                    } else {
+                        // Current player is Player 2 (O - blue)
+                        turnIndicator.innerHTML = `✅ Your turn <span style="color: #0066ff;">${playerId} (O)</span>`;
+                    }
+                    turnIndicator.className = 'your-turn';
+                } else {
+                    // Opponent's turn
+                    const opponent = players.find(p => p !== playerId);
+                    if (opponent === players[0]) {
+                        // Opponent is Player 1 (X - red)
+                        turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #ff0000;">${opponent} (X)</span>`;
+                    } else {
+                        // Opponent is Player 2 (O - blue)
+                        turnIndicator.innerHTML = `⏳ Waiting for <span style="color: #0066ff;">${opponent} (O)</span>`;
+                    }
+                    turnIndicator.className = 'opponent-turn';
+                }
             }
         });
 

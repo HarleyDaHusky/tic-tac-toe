@@ -30,14 +30,25 @@ def create_game(data):
 def join_game(data):
     game_id = data['gameId']
     player_id = data['playerId']
+    joining_mode = data.get('mode')
     game = games.get(game_id)
     
-    if game and game.add_player(player_id):
+    if not game:
+        emit('error', {'message': 'Game not found'})
+        return
+    
+    # Check if mode matches
+    if game.mode != joining_mode:
+        emit('error', {'message': f'Game mode mismatch! This game is in {game.mode} mode. Please switch to {game.mode} mode to join.'})
+        return
+    
+    if game.add_player(player_id):
         join_room(game_id)
         sid = request.sid
         sessions[sid] = {'game_id': game_id, 'player_id': player_id}
-        emit('gameJoined', {'gameId': game_id})
+        emit('gameJoined', {'gameId': game_id, 'mode': game.mode})
         
+        # Check if we now have 2 players
         if len(game.players) == 2:
             if game.mode == 'wordfill':
                 emit('startWordFill', {
@@ -47,14 +58,15 @@ def join_game(data):
                     'sequence': game.wordfill_sequence,
                     'current_index': 0
                 }, room=game_id)
-            else:
-                emit('startGame', {
+            else:  # classic mode
+                print(f"Starting classic game with players: {game.players}")  # Debug log
+                socketio.emit('startGame', {
                     'gameId': game_id,
                     'first_player': game.players[0],
                     'players': game.players
                 }, room=game_id)
     else:
-        emit('error', {'message': 'Game not found or full'})
+        emit('error', {'message': 'Game is full or you are already in the game'})
 
 @socketio.on('placeWord')
 def place_word(data):
@@ -148,7 +160,7 @@ def disconnect():
                 room=game_id
             )
         games.pop(game_id, None)
-        rematch_votes.pop(game_id, None) if 'rematch_votes' in globals() else None
+        rematch_votes.pop(game_id, None)
 
 @socketio.on('rematchRequest')
 def rematch_request(data):
@@ -163,11 +175,11 @@ def rematch_request(data):
     if game and votes == 2:
         player_ids = list(rematch_votes[game_id])
         # Reverse the player order for rematch
-        player_ids.reverse()  # Simple reversal
+        player_ids.reverse()
         # Reset game state
         rematch_votes[game_id] = set()
-        games[game_id] = TicTacToe()
-        # Add players in reversed order (second player becomes first)
+        games[game_id] = TicTacToe(mode=game.mode)
+        # Add players in reversed order
         for pid in player_ids:
             games[game_id].add_player(pid)
         first_player = games[game_id].players[0]

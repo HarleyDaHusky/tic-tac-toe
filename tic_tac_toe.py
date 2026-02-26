@@ -92,7 +92,6 @@ class TicTacToe:
         if position < 0 or position >= len(self.board):
             return {'error': f'Invalid position {position}', 'winner': self.winner}
 
-        # Center square (position 4) can be claimed in game mode even though it has "RPS"
         if self.winner:
             return {'error': 'Game already over', 'winner': self.winner}
 
@@ -107,14 +106,17 @@ class TicTacToe:
         if self.players[self.turn] != player_id:
             return {'error': 'Not your turn', 'winner': self.winner}
 
-        # Set the symbol based on winner or turn
+        # Set the symbol based on player order, not turn
+        # Player 0 (first player) is always X, Player 1 (second player) is always O
         if self.mode == 'wordfill' and winner is not None:
             # Use the winner parameter (0 for Player 1, 1 for Player 2)
             self.board[position] = 'X' if winner == 0 else 'O'
             print(f"[DEBUG] Center tile {position} set to {self.board[position]} by winner {winner}")
         else:
-            self.board[position] = 'X' if self.turn == 0 else 'O'
-            print(f"[DEBUG] Tile {position} set to {self.board[position]} by turn {self.turn}")
+            # In classic mode, player at index 0 is X, player at index 1 is O
+            player_index = 0 if self.players[0] == player_id else 1
+            self.board[position] = 'X' if player_index == 0 else 'O'
+            print(f"[DEBUG] Tile {position} set to {self.board[position]} by player {player_id} (index {player_index})")
 
         # Switch turns for the next player
         self.turn = 1 - self.turn
